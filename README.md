@@ -46,3 +46,14 @@ The tools I hope to build are:
 Go forth and FuckOps.
 
 Cheers.
+
+## What's in here?
+
+At the moment stuff that hasn't spun out into its own repository, namely
+experiments that attempt to overcome these gripes:
+
+* **Gripe:** Ad-hoc Nagios style checks written in sub-subpar Python, Ruby or
+  shell. Inconsistently. Most of which only half work. WTF.
+* **Gripe:** No tests. Because life is too short? Stupid attitude. Stop
+  pretending you save time in the long-run when you have no tests for anything
+  non-trivial.
