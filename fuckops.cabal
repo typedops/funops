@@ -1,0 +1,33 @@
+-- see http://haskell.org/cabal/users-guide/
+name:                fuckops
+-- http://www.haskell.org/haskellwiki/Package_versioning_policy
+-- PVP summary:      +-+------- breaking API changes
+--                   | | +----- non-breaking API additions
+--                   | | | +--- code changes with no API change
+version:             0.1.0.0
+synopsis:            Fuck Ops (as it is). The current mentality is absurd.
+-- description:
+homepage:            https://github.com/typedops/fuckops
+license:             BSD3
+license-file:        LICENSE
+author:              Susan Potter
+maintainer:          me@susanpotter.net
+copyright:           2014 (c) Susan Potter. All rights reserved.
+-- category:
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+
+executable fuckops
+  main-is:
+      Main.hs
+  -- other-extensions:
+  build-depends:
+      base >=4.6 && <4.7
+  hs-source-dirs:
+      src
+    , test
+  default-language:
+    Haskell2010
+
