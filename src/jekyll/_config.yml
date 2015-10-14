@@ -1,0 +1,49 @@
+title: TypedOps
+motto: Better infrastructure through types
+#baseurl: "/funops" # the subpath of your site, e.g. /blog/
+url: "http://typedops.github.io" # the base hostname & protocol for your site
+twitter_username: SusanPotter
+github_username:  mbbx6spp
+
+
+destination:        /home/spotter/src/oss/typedops/funops/target/jekyll
+source:             .
+posts_dir:          ./_posts
+layouts_dir:        ./_layouts
+data_dir:           ./_data
+includes_dir:       ./_includes
+public_dir:         ./public
+
+timezone:           America/Chicago
+encoding:           utf-8
+port:               4000
+
+markdown_ext:       "markdown,md"
+markdown:           kramdown
+highlighter:        pygments
+excerpt_separator:  "\n\n"
+lsi:                true
+permalink:          date
+paginate_path:      /page:num
+
+sass:
+  sass_dir: ./public/css
+  style:    :compressed
+
+kramdown:
+  auto_ids:           true
+  footnote_nr:        1
+  entity_output:      as_char
+  toc_levels:         1..6
+  smart_quotes:       lsquo,rsquo,ldquo,rdquo
+  enable_coderay:     true
+  input:              GFM
+  syntax_highlighter: rouge
+
+  coderay:
+    coderay_wrap:              div
+    coderay_line_numbers:      inline
+    coderay_line_number_start: 1
+    coderay_tab_width:         4
+    coderay_bold_every:        10
+    coderay_css:               style

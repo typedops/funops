@@ -1,0 +1,64 @@
+= Fun Ops
+
+image:https://travis-ci.org/typedops/funops.svg["Build Status", link="https://travis-ci.org/typedops/funops"]
+
+Let's make operations fun again.
+
+A repository for a manifesto, tutorials, and code experiments related to
+writing system, cluster, network, deployment, and application management
+operations tools.
+
+## Status
+
+Experimental; educational.
+
+## Manifesto
+
+Life is too short to use badly constructed tools.
+
+The tutorials and code experiments I hope to share here will be:
+
+* **Typed:** The goal is upholding typesafety when it matters most.
+* **API First:** Expose _usable_ APIs for all suggested tools and consider
+  accessibility and consumption of results with the user in mind.
+* **Bootstrappable:** This restates 'Infrastructure as Code' idea basically.
+  We should always be able to instantiate infrastructure from code that is
+  inside a repository.
+* **Testable:** It's amazing how many Ops tools are not really testable at all
+  without manual actions involved. Life is too short. We should always make
+  testing (from `--dry-run`s to fully mockable at each phase/stage of execution)
+  possible.
+* **Well Defined:** Use well defined (and simple) APIs and protocols to make
+  this happen.
+
+## Getting Started
+
+### Using Nix
+
+To get started with Nix 0.10.x+ just run: `nix-shell` at the root of this
+repository.
+
+### OSX or Linux
+
+Prerequisites:
+
+* Install JDK
+* Install Scala 2.11.x
+* Install SBT 0.13.7+
+
+Steps:
+
+1. At root of repository: `sbt tut`
+
+## Contribute
+
+1. Fork this repo.
+2. Create a well named branch off of the current master (`typedops/funops`).
+3. Work on your changes.
+4. Push your changes to your fork.
+5. Submit a pull request from your fork to this repo and provide a
+   description of your changes.
+
+Go forth and FunOps.
+
+Cheers.

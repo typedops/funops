@@ -1,0 +1,6 @@
+sudo: false
+language: scala
+script: sbt ++$TRAVIS_SCALA_VERSION tut
+sbt_args: -J-Xss2m
+scala:
+   - 2.11.7
