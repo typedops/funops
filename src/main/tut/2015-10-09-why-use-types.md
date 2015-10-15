@@ -304,3 +304,11 @@ this? How far makes sense? Keep these questions in mind.
 The next tutorial in the series will walk through how we add some structure
 to our types with accompanying functions with specific properties we can
 use to reason about our code in more abstract ways.
+
+## Acknowledgements
+
+Two coworkers were kind enough to offer technical and editing advice for this
+tutorial. They are:
+
+* [Andrew Kuhnhausen](https://github.com/trane)
+* [Peter Caswell](https://twitter.com/petercaswell)
