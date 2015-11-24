@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Extending Syntax in Scala and Idris
+title: Extending Syntax in Scala
 date: 2015-11-05 14:29 -0500
 category: tutorials
 tags:
@@ -30,6 +30,8 @@ So today we will see how much of a challenge it will be to do this in Scala.
 
 _Hint: It might be a little more work, but doable._
 
+## Setup
+
 We will start out defining the sum type `Maybe` with data constructors `Nowt`
 (same as `Nothing` in Idris) and `Just` which wraps an underlying `A` value.
 
@@ -39,7 +41,7 @@ case class Just[A](a: A) extends Maybe[A]
 case class Nowt[A]() extends Maybe[A]
 ```
 
-Now we just have to define the `toMaybe[A]` decorator. We can do this in the
+Now we just have to define the `fromMaybe[A]` decorator. We can do this in the
 companion object:
 
 ```tut
@@ -52,8 +54,9 @@ object Maybe {
 ```
 
 Now we have what was already provided by Idris in the Prelude, therefore so
-far we have just been setting up our Scala code to mimick what we had in Idris.
-(Note: we could have also used `Option[A]` and related `getOrElse` method.
+far, we have been setting up our Scala code to mimick what we had in Idris.
+(Note: we could have also used `Option[A]` and related `getOrElse` method
+instead of the above).
 
 ```tut
 object Maybe { self => /* Note: newly added reference to outer object */
@@ -74,7 +77,7 @@ object Maybe { self => /* Note: newly added reference to outer object */
 }
 ```
 
-Now let's test we can use this the way we want:
+Now we can test that we can use the new syntax (`?` operator) the way we want:
 
 ```tut
 object Main extends App {
@@ -108,6 +111,30 @@ content into scope like so:
 ```scala
   import Maybe._
 ```
+
+For bonus points, we added a couple of smart value constructors in the
+companion object:
+
+```tut
+  def apply[A](a: A): Maybe[A] = if (a == null) Nowt() else Just(a)
+  def nowt[A]: Maybe[A] = Nowt()
+  def just[A](a: A) = Maybe(a)
+```
+
+This makes consuming code for constructing `Maybe[A]` values simpler
+with appropriate type inference (i.e. we want `Maybe[A]` to always
+be inferred not `Just[A]` or `Nowt[A]`).
+
+If we had not added these value constructors or not used them we
+would have this problem on our hands:
+
+```tut
+  val mint1 = Just(30)
+  val mint2 = Nowt[Int]
+```
+
+Look at the types inferred by Scala. In some scenarios, this might
+give you problems.
 
 ## Review
 
