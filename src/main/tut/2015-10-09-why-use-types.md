@@ -18,7 +18,7 @@ types, even in lanuages they can leverage well for this.
 This tutorial is an attempt to show step by step an iterative approach to
 transforming what I would consider an ill-typed API (a form I see very often
 in operations or infrastructure code) towards a more type-expressive API
-which eleminates a large set of invalid values from ever being constructed in
+which eliminates a large set of invalid values from ever being constructed in
 the first place.
 
 This will be the basis for future tutorials that will follow, putting into
