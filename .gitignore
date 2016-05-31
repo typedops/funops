@@ -1,3 +1,4 @@
 target
 src/jekyll/_posts
 .sass-cache
+.bundle
