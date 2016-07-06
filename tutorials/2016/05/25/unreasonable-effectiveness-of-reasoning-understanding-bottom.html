@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>    
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width initial-scale=1">
+
+  <title>The Unreasonable Effectiveness of Reasoning: Eliminating Bottom</title>
+  <meta name="description" content="Background: (Mathematical) Bottom (⊥)">
+
+  <link rel="stylesheet" href="/public/css/main.css">
+  <link rel="canonical" href="http://typedops.github.io/tutorials/2016/05/25/unreasonable-effectiveness-of-reasoning-understanding-bottom.html">
+  <link rel="alternate" type="application/atom+xml" title="TypedOps" href="http://typedops.github.io/feed.xml" />
+</head>
+
+
+  <body>
+    <header class="header">
+	<div class="header-container">
+		<div class="nav">
+			
+				<li>
+					<a href="/index.html">home</a>
+				</li>
+			
+			
+				<li>
+					<a href="/archive.html">archive</a>
+				</li>
+			
+			
+				<li>
+					<a href="/category.html">category</a>
+				</li>
+			
+			
+				<li>
+					<a href="/tag.html">tag</a>
+				</li>
+      
+		</div>
+		<div class="description"> Better infrastructure through types </div>
+		<ul class="social-links">
+			<li>
+				<a href="https://github.com/mbbx6spp" title="Github">
+					<img width="19px" height="19px" src="/public/images/github.png"/>
+				</a>
+			</li>
+			<li>
+				<a href="/feed.xml" title="RSS">
+					<img width="19px" height="19px" src="/public/images/rss.png"/>
+				</a>
+			</li>
+			<li>
+				<a href="https://twitter.com/SusanPotter" title="Twitter">
+					<img width="19px" height="19px" src="/public/images/twitter.png"/>
+				</a>
+			</li>
+		</ul>
+	</div>
+</header>
+
+    <br>
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="single row gutters">
+  <time class="published" datetime="2016-05-25">25 May 2016</time>
+  <h2>The Unreasonable Effectiveness of Reasoning: Eliminating Bottom</h2>
+
+  <h2 id="background-mathematical-bottom-">Background: (Mathematical) Bottom (⊥)</h2>
+
+<p>Wikipedia states this as the definition:</p>
+
+<blockquote>
+  <p>In type theory, a theory within mathematical logic, the bottom type is the
+type that has no values. It is also called the zero or empty type, and is
+sometimes denoted with falsum (⊥).</p>
+
+  <p>A function whose return type is bottom cannot return any value. In the
+Curry–Howard correspondence, the bottom type corresponds to falsity.</p>
+</blockquote>
+
+<p>In lay person’s terms (my own words, not formal at all):</p>
+
+<blockquote>
+  <p>bottom (in mathematics/type theory) represents any <em>false</em> situation where
+you can no longer use equational reasoning. E.g. any time you raise an
+exception that unwinds the stack, or a system error is raised from the
+bowels of the runtime, you have unterminated functions, or you otherwise
+inflict the operating environment your program runs within with an unspoken
+side effect.</p>
+</blockquote>
+
+<h3 id="references">References</h3>
+
+<ul>
+  <li>https://en.wikipedia.org/wiki/Bottom_type</li>
+  <li>https://wiki.haskell.org/Bottom</li>
+</ul>
+
+<h3 id="implications">Implications</h3>
+
+<p>(Pure) Functional programming is predicated on proven logic results from the
+lambda calculus. Any time your code or other dependencies return a
+<em>“bottom”</em> value from a function you have violated the contract that allows
+you to reason mathematically about your code. In truly exceptional cases
+this is necessary to have an operationally well-behaved software in the real
+world. One example is a runtime error that unwinds the stack to denote an out
+of memory system condition was met. In such a case, what can your application
+reasonably do to counter this problem? I would argue nothing, except maybe
+log it and exit if that is even possible (at least in the languages and
+environments I have experience in which isn’t to say I know everything).</p>
+
+<p>Knowing how, when and what to reason about in your codebase is the key to
+applying the lambda calculus to your software in the real world. Even
+Haskellers have portions of their code they cannot equationally reason about
+to cater for their real world operational requirements. Knowing the
+vulnerabilities in your ability to reason about your code is key to knowing
+when and where you can apply equational reasoning.</p>
+
+<p>Limiting the surface area where <em>bottom</em> may arise in your code reduces the
+possibility of wide classes of runtime bugs.</p>
+
+<p>The rest of this article provides a simple code-level case study to understand
+how functional programming libraries have made a different trade-off with
+respect to the ability to reason logically about their standard library code.</p>
+
+<h2 id="case-study-system-environment-variable-lookup">Case Study: System Environment Variable Lookup</h2>
+
+<p>Just doing something as simple as looking up an environment variable yields
+<em>bottom</em> in OCaml but not in Haskell/GHC. Let’s compare approaches.</p>
+
+<h3 id="haskellghc-710x">Haskell/GHC 7.10.x+</h3>
+
+<p>This code will likely work in many prior versions of GHC but I have only
+tested on 7.10.3.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="gp">$ </span>ghci
+GHCi, version 7.10.3: http://www.haskell.org/ghc/  :? <span class="k">for </span><span class="nb">help
+</span><span class="gp">Prelude&gt; </span>import System.Posix
+Prelude System.Posix&gt; :t getEnv
+getEnv :: String -&gt; IO <span class="o">(</span>Maybe String<span class="o">)</span>
+Prelude System.Posix&gt; :q
+Leaving GHCi.
+</code></pre>
+</div>
+
+<p>Type signature of getting the value of an environment variable in
+<code class="highlighter-rouge">System.Posix</code> is:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="kt">String</span> <span class="o">-&gt;</span> <span class="kt">IO</span> <span class="p">(</span><span class="kt">Maybe</span> <span class="kt">String</span><span class="p">)</span>
+</code></pre>
+</div>
+
+<p>In English this translates to: given a String we produce a program in the
+<code class="highlighter-rouge">IO</code> context where when performed will return a <code class="highlighter-rouge">Maybe String</code> value.</p>
+
+<p>Notice here that the module <code class="highlighter-rouge">System.Posix</code> provides a function that does two
+things:</p>
+
+<ul>
+  <li>wraps the result into an IO context so that the intended program can be
+represented as an <code class="highlighter-rouge">IO</code> value to separate it from the performance/execution
+of the program (a core tenet of referential transparency or ‘purity’).</li>
+  <li>ensures that the inner value describes the context that no environment
+variable setting is a valid value in the domain of environment variables.
+i.e. what we are saying is that in a system environment if a key is not
+present, we return a value that signifies that back to the caller as an
+explicit value. In the world of environment variable retrieving we probably
+don’t care about returning an error value that describes why a <code class="highlighter-rouge">String</code>
+value wasn’t returned as there are so few reasons it would likely not be
+interesting to the caller of the function. However, in some domains we
+would provide a function with the type: <code class="highlighter-rouge">String -&gt; IO (Either e String)</code>
+where <code class="highlighter-rouge">e</code> is a coproduct/sum type that describes the possible errors
+possible in the context of the function.</li>
+</ul>
+
+<h3 id="ocaml-4010">OCaml 4.01.0</h3>
+
+<p>Again the version of OCaml can likely vary from this version to yield the
+same results, but I have only tested with 4.01.0.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="o">[</span>git:master?+] spotter@redhorn ~/src/work/root
+<span class="gp">$ </span>ocaml
+        OCaml version 4.01.0
+
+<span class="c"># open Sys;;</span>
+<span class="c"># getenv;;</span>
+- : string -&gt; string <span class="o">=</span> &lt;fun&gt;
+</code></pre>
+</div>
+
+<p>The OCaml type is much simpler (<code class="highlighter-rouge">string -&gt; string</code>) but at a cost because now
+we cannot do the following:</p>
+
+<ul>
+  <li>Cannot describe the program’s logic separately from when it is
+performed/evaluated. Once you call this function a side effect is imposed
+on the operating environment. In this case we are just querying the system
+environment which may not have negative impact, but in many other cases it
+may, e.g. setting variable value in system environment.</li>
+  <li>The return value also doesn’t denote that the variable key may not exist or
+be set at all in the environment. The way that OCaml caters for this case
+is by raising an exception that unwinds the stack. i.e. producing a bottom
+value. This is not represented to the caller in the type signature.</li>
+</ul>
+
+<h2 id="usage">Usage</h2>
+
+<p>Usage of the respective APIs.</p>
+
+<h3 id="haskell">Haskell</h3>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>Prelude System.Posix&gt; getEnv <span class="s2">"HOME"</span>
+Just <span class="s2">"/home/spotter"</span>
+it :: Maybe String
+Prelude System.Posix&gt; getEnv <span class="s2">"HOME2"</span>
+Nothing
+it :: Maybe String
+</code></pre>
+</div>
+
+<p>Because we are in the GHCi (REPL/interactive shell) we are essentially
+performing the <code class="highlighter-rouge">IO</code> action at the same time we call it, but that is only due
+to calling within the REPL without using <code class="highlighter-rouge">let</code>. Below we use the same API to
+get an <code class="highlighter-rouge">IO</code> action (aka <em>program</em>) which we can combine with other <code class="highlighter-rouge">IO</code>
+actions to produce a new and improved program in the <code class="highlighter-rouge">IO</code> context to later
+perform/execute it.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="kt">Prelude</span><span class="o">&gt;</span> <span class="kr">import</span> <span class="nn">System.Posix</span>
+<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">&gt;</span> <span class="kr">let</span> <span class="n">a0</span> <span class="o">=</span> <span class="n">getE</span>
+<span class="n">getEffectiveGroupID</span>   <span class="n">getEffectiveUserName</span>  <span class="n">getEnvDefault</span>         <span class="n">getEnvironmentPrim</span>
+<span class="n">getEffectiveUserID</span>    <span class="n">getEnv</span>                <span class="n">getEnvironment</span>
+<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">&gt;</span> <span class="kr">let</span> <span class="n">a0</span> <span class="o">=</span> <span class="n">getEnv</span> <span class="s">"HOME"</span>
+<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">|</span>
+<span class="n">a0</span> <span class="o">::</span> <span class="kt">IO</span> <span class="p">(</span><span class="kt">Maybe</span> <span class="kt">String</span><span class="p">)</span>
+<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">&gt;</span> <span class="o">:</span><span class="n">t</span> <span class="n">a0</span>
+<span class="n">a0</span> <span class="o">::</span> <span class="kt">IO</span> <span class="p">(</span><span class="kt">Maybe</span> <span class="kt">String</span><span class="p">)</span>
+<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">&gt;</span> <span class="kr">let</span> <span class="n">a1</span> <span class="o">=</span> <span class="n">getEnv</span> <span class="s">"HOME2"</span>
+<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">|</span>
+<span class="n">a1</span> <span class="o">::</span> <span class="kt">IO</span> <span class="p">(</span><span class="kt">Maybe</span> <span class="kt">String</span><span class="p">)</span>
+<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">&gt;</span> <span class="o">:</span><span class="n">t</span> <span class="n">a1</span>
+<span class="n">a1</span> <span class="o">::</span> <span class="kt">IO</span> <span class="p">(</span><span class="kt">Maybe</span> <span class="kt">String</span><span class="p">)</span>
+<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span> <span class="kt">System</span><span class="o">.</span><span class="kt">IO</span><span class="o">.</span><span class="kt">Unsafe</span><span class="o">&gt;</span> <span class="kr">let</span> <span class="n">a2</span> <span class="o">=</span> <span class="n">a0</span> <span class="o">&gt;&gt;=</span> <span class="n">putStrLn</span> <span class="o">.</span> <span class="n">printMaybeS</span> <span class="o">&gt;&gt;=</span> <span class="n">const</span> <span class="n">a1</span> <span class="o">&gt;&gt;=</span>
+<span class="n">putStrLn</span> <span class="o">.</span> <span class="n">printMaybeS</span>
+<span class="n">a2</span> <span class="o">::</span> <span class="kt">IO</span> <span class="nb">()</span>
+<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span> <span class="kt">System</span><span class="o">.</span><span class="kt">IO</span><span class="o">.</span><span class="kt">Unsafe</span><span class="o">&gt;</span> <span class="n">unsafePerformIO</span> <span class="n">a2</span>
+<span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">spotter</span>
+<span class="p">(</span><span class="n">unset</span><span class="p">)</span>
+<span class="nb">()</span>
+<span class="n">it</span> <span class="o">::</span> <span class="nb">()</span>
+</code></pre>
+</div>
+
+<h3 id="ocaml">OCaml</h3>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="p">#</span> <span class="n">getenv</span> <span class="s2">"HOME"</span>
+  <span class="p">;;</span>
+<span class="p">-</span> <span class="p">:</span> <span class="kt">string</span> <span class="p">=</span> <span class="s2">"/home/spotter"</span>
+<span class="p">#</span> <span class="n">getenv</span> <span class="s2">"HOME2"</span>
+  <span class="p">;;</span>
+<span class="nc">Exception</span><span class="p">:</span> <span class="nn">Not_found</span><span class="p">.</span>
+</code></pre>
+</div>
+
+<p>Ouch! We have lost the ability to encapsulate the effects and decide <em>when</em>
+to perform them without the effect context in the return type (<code class="highlighter-rouge">IO</code> in the
+Haskell/GHC case). We also don’t receive a type expressing the optionality
+of the result which forces <em>bottom</em> be returned.</p>
+
+<h2 id="tradeoffs">Tradeoffs</h2>
+
+<p>There are some implementations of the equivalent <code class="highlighter-rouge">getenv</code> functionality
+in other functional languages that return an empty <code class="highlighter-rouge">string</code> as an
+alternative to an exception. In this case the consumer of the API loses the
+ability to tell between the case of an environment variable set to the empty
+string and an unset environment variable. This may be perfectly acceptable
+for your needs. As the API designer you get to decide where to draw the line.</p>
+
+<p>By wrapping your return values inside contexts you do require more from
+the consumer to get at the “happy path” result, but you provide much more
+control and/or context for the consumer of your API with additional type
+safety that can help in refactoring your code base. Depending on your
+programming environment and requirements you may need to weigh the memory and
+CPU cycle costs of this extra wrapping. Make sure you measure whether this
+impacts your system negatively before prematurely optimizing though.</p>
+
+<p>The moral of the story is you must remember the limits of your ability to
+reason about the code with the different API design choices available to you.</p>
+
+<p>Cheers and happy reasoning.</p>
+
+<h3 id="thank-you">Thank you!</h3>
+
+<p>I would like to thank the follow non-functional programmers for reviewing
+a rough draft of this post for flow and cohesiveness:</p>
+
+<ul>
+  <li><a href="https://twitter.com/randomfrequency">@randomfrequency</a></li>
+  <li><a href="https://twitter.com/PeterCaswell">Peter Caswell</a></li>
+</ul>
+
+</article>
+
+      </div>
+    </div>
+    
+    <footer class="footer">
+	@2015 Susan Potter.
+</footer>
+
+    
+  </body>
+
+</html>

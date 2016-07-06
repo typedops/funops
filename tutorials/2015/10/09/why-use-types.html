@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>    
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width initial-scale=1">
+
+  <title>Why Use Types?</title>
+  <meta name="description" content="Types are one of the most mainstream and widespread applied formal methodsin software engineering industry today. Yet I have met many accomplished andexperie...">
+
+  <link rel="stylesheet" href="/public/css/main.css">
+  <link rel="canonical" href="http://typedops.github.io/tutorials/2015/10/09/why-use-types.html">
+  <link rel="alternate" type="application/atom+xml" title="TypedOps" href="http://typedops.github.io/feed.xml" />
+</head>
+
+
+  <body>
+    <header class="header">
+	<div class="header-container">
+		<div class="nav">
+			
+				<li>
+					<a href="/index.html">home</a>
+				</li>
+			
+			
+				<li>
+					<a href="/archive.html">archive</a>
+				</li>
+			
+			
+				<li>
+					<a href="/category.html">category</a>
+				</li>
+			
+			
+				<li>
+					<a href="/tag.html">tag</a>
+				</li>
+      
+		</div>
+		<div class="description"> Better infrastructure through types </div>
+		<ul class="social-links">
+			<li>
+				<a href="https://github.com/mbbx6spp" title="Github">
+					<img width="19px" height="19px" src="/public/images/github.png"/>
+				</a>
+			</li>
+			<li>
+				<a href="/feed.xml" title="RSS">
+					<img width="19px" height="19px" src="/public/images/rss.png"/>
+				</a>
+			</li>
+			<li>
+				<a href="https://twitter.com/SusanPotter" title="Twitter">
+					<img width="19px" height="19px" src="/public/images/twitter.png"/>
+				</a>
+			</li>
+		</ul>
+	</div>
+</header>
+
+    <br>
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="single row gutters">
+  <time class="published" datetime="2015-10-09">09 October 2015</time>
+  <h2>Why Use Types?</h2>
+
+  <p>Types are one of the most mainstream and widespread applied formal methods
+in software engineering industry today. Yet I have met many accomplished and
+experienced practitioners in our field who do not know how to effectively use
+types, even in lanuages they can leverage well for this.</p>
+
+<p>This tutorial is an attempt to show step by step an iterative approach to
+transforming what I would consider an ill-typed API (a form I see very often
+in operations or infrastructure code) towards a more type-expressive API
+which eliminates a large set of invalid values from ever being constructed in
+the first place.</p>
+
+<p>This will be the basis for future tutorials that will follow, putting into
+practice more structural typed techniques often used in typed functional
+programming. My claim here is that pairing a half decent type system that
+can express many valid constructions of values (and eliminate many invalid
+constructions) with functional programming principles and abstractions we can
+build a solid core of a working library or executable. It will allow us to
+reason about our code such that we can extend it in ways we previously thought
+unimaginable without much heavy lifting (after the initial plumbing work). We
+will start to see evidence for this claim in this tutorial post and subsequent
+tutorials will build upon this foundation to supply more evidence as we go
+along on our journey.</p>
+
+<h2 id="to-the-cloud-and-beyond">To The Cloud And Beyond</h2>
+
+<p>Let’s start out with a simple example. We need to model VPCs and Subnets in
+AWS:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Vpc</span><span class="o">(</span>
+     <span class="o">|</span>   <span class="n">cidrBlock</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">region</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">dhcpOptionsId</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">instanceTenancy</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">isDefault</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">)</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">Vpc</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Subnet</span><span class="o">(</span>
+     <span class="o">|</span>   <span class="n">cidrBlock</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">vpcId</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">availabilityZone</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">defaultForAz</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">mapPublicOnLaunch</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">)</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">Subnet</span>
+</code></pre>
+</div>
+
+<p>Now let’s use these definition to construct values:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">val</span> <span class="n">region</span> <span class="k">=</span> <span class="s">"us-west-14"</span>
+<span class="n">region</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="n">us</span><span class="o">-</span><span class="n">west</span><span class="o">-</span><span class="mi">14</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">val</span> <span class="n">vpc</span> <span class="k">=</span> <span class="nc">Vpc</span><span class="o">(</span><span class="s">"10.0.0.0/16"</span><span class="o">,</span> <span class="n">region</span><span class="o">,</span> <span class="kc">null</span><span class="o">,</span> <span class="s">"dedicated"</span><span class="o">,</span> <span class="kc">false</span><span class="o">)</span>
+<span class="n">vpc</span><span class="k">:</span> <span class="kt">Vpc</span> <span class="o">=</span> <span class="nc">Vpc</span><span class="o">(</span><span class="mf">10.0</span><span class="o">.</span><span class="mf">0.0</span><span class="o">/</span><span class="mi">16</span><span class="o">,</span><span class="n">us</span><span class="o">-</span><span class="n">west</span><span class="o">-</span><span class="mi">14</span><span class="o">,</span><span class="kc">null</span><span class="o">,</span><span class="n">dedicated</span><span class="o">,</span><span class="kc">false</span><span class="o">)</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">val</span> <span class="n">subnet</span> <span class="k">=</span> <span class="nc">Subnet</span><span class="o">(</span><span class="s">"10.10.16.0/24"</span><span class="o">,</span> <span class="s">"sg-123456"</span><span class="o">,</span> <span class="n">s</span><span class="s">"${region}b"</span><span class="o">,</span> <span class="kc">false</span><span class="o">,</span> <span class="kc">false</span><span class="o">)</span>
+<span class="n">subnet</span><span class="k">:</span> <span class="kt">Subnet</span> <span class="o">=</span> <span class="nc">Subnet</span><span class="o">(</span><span class="mf">10.10</span><span class="o">.</span><span class="mf">16.0</span><span class="o">/</span><span class="mi">24</span><span class="o">,</span><span class="n">sg</span><span class="o">-</span><span class="mi">123456</span><span class="o">,</span><span class="n">us</span><span class="o">-</span><span class="n">west</span><span class="o">-</span><span class="mi">14</span><span class="n">b</span><span class="o">,</span><span class="kc">false</span><span class="o">,</span><span class="kc">false</span><span class="o">)</span>
+</code></pre>
+</div>
+
+<p>There are a few problems in just this simple usage of these simple classes:</p>
+
+<ol>
+  <li>There is no region named <code class="highlighter-rouge">us-west-14</code> and the derived availability zone
+value is also invalid.</li>
+  <li>A <code class="highlighter-rouge">null</code> was given for <code class="highlighter-rouge">dhcpOptionsId</code> argument but the behavior of various
+utilities using these types is unknown when this happens as we don’t know
+if they will actually handle <code class="highlighter-rouge">null</code>’s properly with defensive programming.</li>
+  <li>We might have fat fingered the <code class="highlighter-rouge">instanceTenancy</code>, this time we didn’t, but
+who knows when everything is just of type <code class="highlighter-rouge">String</code>.</li>
+  <li>We have no idea if the given <code class="highlighter-rouge">cidr</code> block arguments to either <code class="highlighter-rouge">Vpc</code> or
+<code class="highlighter-rouge">Subnet</code> are valid since we just expect a <code class="highlighter-rouge">String</code> representing a CIDR.</li>
+  <li>We have no idea if the string id for DHCP options or VPC are referring to
+identifiers of the right kind or not.</li>
+</ol>
+
+<p>We started with such a simple API and already have numerous issues with just
+using weak types in our data type definitions.</p>
+
+<p>Now let’s toughen up these types.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// We build a sum type (also called coproduct in some literature)
+</span>     <span class="o">|</span> <span class="c1">// This is a kind of algebraic data type that represents a logical OR
+</span>     <span class="o">|</span> <span class="k">sealed</span> <span class="k">trait</span> <span class="nc">Region</span>
+<span class="n">defined</span> <span class="k">trait</span> <span class="nc">Region</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">object</span> <span class="nc">UsWest1</span> <span class="k">extends</span> <span class="nc">Region</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">UsWest1</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">object</span> <span class="nc">UsWest2</span> <span class="k">extends</span> <span class="nc">Region</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">UsWest2</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">object</span> <span class="nc">UsEast1</span> <span class="k">extends</span> <span class="nc">Region</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">UsEast1</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">object</span> <span class="nc">EuWest1</span> <span class="k">extends</span> <span class="nc">Region</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">EuWest1</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// Another sum type here for zone *inside* of a region
+</span>     <span class="o">|</span> <span class="k">sealed</span> <span class="k">trait</span> <span class="nc">Zone</span>
+<span class="n">defined</span> <span class="k">trait</span> <span class="nc">Zone</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">object</span> <span class="nc">A</span> <span class="k">extends</span> <span class="nc">Zone</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">A</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">object</span> <span class="nc">B</span> <span class="k">extends</span> <span class="nc">Zone</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">B</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">object</span> <span class="nc">C</span> <span class="k">extends</span> <span class="nc">Zone</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">C</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// This is a product type (a dressed up N-tuple)
+</span>     <span class="o">|</span> <span class="c1">// This is another kind of algebraic data type representing logical AND
+</span>     <span class="o">|</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">AvailabilityZone</span><span class="o">(</span><span class="n">region</span><span class="k">:</span> <span class="kt">Region</span><span class="o">,</span> <span class="n">zone</span><span class="k">:</span> <span class="kt">Zone</span><span class="o">)</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">AvailabilityZone</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// A sum type to represent the notion of instance tenancy, I am sure I am
+</span>     <span class="o">|</span> <span class="c1">// missing possible data constructors (the case objects/classes that extend
+</span>     <span class="o">|</span> <span class="c1">// from the base class, in this case +InstanceTenancy+).
+</span>     <span class="o">|</span> <span class="k">sealed</span> <span class="k">trait</span> <span class="nc">InstanceTenancy</span>
+<span class="n">defined</span> <span class="k">trait</span> <span class="nc">InstanceTenancy</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">object</span> <span class="nc">Dedicated</span> <span class="k">extends</span> <span class="nc">InstanceTenancy</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">Dedicated</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">object</span> <span class="nc">Default</span> <span class="k">extends</span> <span class="nc">InstanceTenancy</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">Default</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Vpc</span><span class="o">(</span>
+     <span class="o">|</span>   <span class="n">cidrBlock</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">region</span><span class="k">:</span> <span class="kt">Region</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">dhcpOptionsId</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">String</span><span class="o">],</span>
+     <span class="o">|</span>   <span class="n">instanceTenancy</span><span class="k">:</span> <span class="kt">InstanceTenancy</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">isDefault</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">)</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">Vpc</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Subnet</span><span class="o">(</span>
+     <span class="o">|</span>   <span class="n">cidrBlock</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">vpcId</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">availabilityZone</span><span class="k">:</span> <span class="kt">AvailabilityZone</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">defaultForAz</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">mapPublicOnLaunch</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">)</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">Subnet</span>
+</code></pre>
+</div>
+
+<p>Now we have some provisioning logic that picks the appropriate AWS
+credentials when using specific regions vs others:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// we are just mocking out this function for now and not *doing* anything yet
+</span>     <span class="o">|</span> <span class="k">def</span> <span class="n">provisionVpc</span><span class="o">(</span><span class="n">vpc</span><span class="k">:</span> <span class="kt">Vpc</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
+     <span class="o">|</span>   <span class="k">if</span> <span class="o">(</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span> <span class="o">==</span> <span class="s">"us-west-1"</span><span class="o">)</span> <span class="s">"vpc-123456"</span> <span class="k">else</span> <span class="s">"vpc-654321"</span>
+<span class="o">&lt;</span><span class="n">console</span><span class="k">&gt;:</span><span class="mi">22</span><span class="k">:</span> <span class="kt">warning:</span> <span class="kt">Region</span> <span class="kt">and</span> <span class="kt">String</span> <span class="kt">are</span> <span class="kt">unrelated:</span> <span class="kt">they</span> <span class="kt">will</span> <span class="kt">most</span> <span class="kt">likely</span> <span class="kt">never</span> <span class="kt">compare</span> <span class="kt">equal</span>
+         <span class="k">if</span> <span class="o">(</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span> <span class="o">==</span> <span class="s">"us-west-1"</span><span class="o">)</span> <span class="s">"vpc-123456"</span> <span class="k">else</span> <span class="s">"vpc-654321"</span>
+                        <span class="o">^</span>
+<span class="n">provisionVpc</span><span class="k">:</span> <span class="o">(</span><span class="kt">vpc:</span> <span class="kt">Vpc</span><span class="o">)</span><span class="kt">String</span>
+</code></pre>
+</div>
+
+<p>Here we have a problem. The <code class="highlighter-rouge">==</code> is always false, but shouldn’t it be a
+compiler error instead? In Scala, <code class="highlighter-rouge">==</code> takes on the same semantics as
+the same operator in Java and thus will always compile even when you
+are comparing the value of a different type.</p>
+
+<p>Thankfully in libraries like <code class="highlighter-rouge">cats</code> or <code class="highlighter-rouge">scalaz</code> (we will be using
+<code class="highlighter-rouge">cats</code> in these examples) we can use a type safe equality operator
+like so:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">import</span> <span class="nn">cats._</span><span class="o">,</span> <span class="n">cats</span><span class="o">.</span><span class="n">std</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="k">_</span><span class="o">,</span> <span class="n">cats</span><span class="o">.</span><span class="n">syntax</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="k">_</span>
+<span class="k">import</span> <span class="nn">cats._</span>
+<span class="k">import</span> <span class="nn">cats.std.all._</span>
+<span class="k">import</span> <span class="nn">cats.syntax.all._</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">implicit</span> <span class="k">val</span> <span class="n">regionEquality</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Eq</span><span class="o">[</span><span class="kt">Region</span><span class="o">]</span> <span class="o">{</span>
+     <span class="o">|</span>   <span class="k">def</span> <span class="n">eqv</span><span class="o">(</span><span class="n">r1</span><span class="k">:</span> <span class="kt">Region</span><span class="o">,</span> <span class="n">r2</span><span class="k">:</span> <span class="kt">Region</span><span class="o">)</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="n">r1</span> <span class="o">==</span> <span class="n">r2</span>
+     <span class="o">|</span> <span class="o">}</span>
+<span class="n">regionEquality</span><span class="k">:</span> <span class="kt">cats.Eq</span><span class="o">[</span><span class="kt">Region</span><span class="o">]</span> <span class="k">=</span> <span class="nc">$anon$1</span><span class="k">@</span><span class="mi">62</span><span class="n">a8ea2d</span>
+</code></pre>
+</div>
+
+<p>It may not seem like we have accomplished much here except that when we use
+<code class="highlighter-rouge">===</code> (the typesafe equality operator) our code will not compile when we
+check different types for equality:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// Now reimplement provisionVpc (but this does not compile, which is what we
+</span>     <span class="o">|</span> <span class="c1">// want!!!)
+</span>     <span class="o">|</span> <span class="k">def</span> <span class="n">provisionVpc</span><span class="o">(</span><span class="n">vpc</span><span class="k">:</span> <span class="kt">Vpc</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
+     <span class="o">|</span>   <span class="k">if</span> <span class="o">(</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span> <span class="o">===</span> <span class="s">"us-west-1"</span><span class="o">)</span> <span class="s">"vpc-123456"</span> <span class="k">else</span> <span class="s">"vpc-654321"</span>
+<span class="o">&lt;</span><span class="n">console</span><span class="k">&gt;:</span><span class="mi">33</span><span class="k">:</span> <span class="kt">error:</span> <span class="k">type</span> <span class="kt">mismatch</span><span class="o">;</span>
+ <span class="n">found</span>   <span class="k">:</span> <span class="kt">String</span><span class="o">(</span><span class="err">"</span><span class="kt">us-west-</span><span class="err">1"</span><span class="o">)</span>
+ <span class="kt">required:</span> <span class="kt">Region</span>
+         <span class="k">if</span> <span class="o">(</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span> <span class="o">===</span> <span class="s">"us-west-1"</span><span class="o">)</span> <span class="s">"vpc-123456"</span> <span class="k">else</span> <span class="s">"vpc-654321"</span>
+                            <span class="o">^</span>
+</code></pre>
+</div>
+
+<p>The following will compile and is exactly what we want in our case:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// Now reimplement provisionVpc where types on either side of === match such
+</span>     <span class="o">|</span> <span class="c1">// that this now compiles but also the logic behaves as we expect and can
+</span>     <span class="o">|</span> <span class="c1">// reason about.
+</span>     <span class="o">|</span> <span class="k">def</span> <span class="n">provisionVpc</span><span class="o">(</span><span class="n">vpc</span><span class="k">:</span> <span class="kt">Vpc</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
+     <span class="o">|</span>   <span class="k">if</span> <span class="o">(</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span> <span class="o">===</span> <span class="nc">UsWest1</span><span class="o">)</span> <span class="s">"vpc-123456"</span> <span class="k">else</span> <span class="s">"vpc-654321"</span>
+<span class="n">provisionVpc</span><span class="k">:</span> <span class="o">(</span><span class="kt">vpc:</span> <span class="kt">Vpc</span><span class="o">)</span><span class="kt">String</span>
+</code></pre>
+</div>
+
+<p>Now we could still improve the constituent types of the <code class="highlighter-rouge">Vpc</code> and <code class="highlighter-rouge">Subnet</code>
+product types further such as accepting a <code class="highlighter-rouge">Cidr</code> type for the CIDR block
+given:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">import</span> <span class="nn">spire.math._</span><span class="o">,</span> <span class="n">spire</span><span class="o">.</span><span class="n">implicits</span><span class="o">.</span><span class="k">_</span>
+<span class="k">import</span> <span class="nn">spire.math._</span>
+<span class="k">import</span> <span class="nn">spire.implicits._</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// Note: UByte is from spire. It is the most natural type that represents
+</span>     <span class="o">|</span> <span class="c1">// what we want below without defining a low level type ourselves.
+</span>     <span class="o">|</span> <span class="c1">// Let me know if I missed something from the standard library that isn't
+</span>     <span class="o">|</span> <span class="c1">// Byte.
+</span>     <span class="o">|</span> 
+     <span class="o">|</span> <span class="k">sealed</span> <span class="k">trait</span> <span class="nc">IpAddress</span>
+<span class="n">defined</span> <span class="k">trait</span> <span class="nc">IpAddress</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">object</span> <span class="nc">IpAddress</span> <span class="o">{</span>
+     <span class="o">|</span>   <span class="k">private</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Ipv4</span><span class="o">(</span><span class="n">a</span><span class="k">:</span> <span class="kt">UByte</span><span class="o">,</span> <span class="n">b</span><span class="k">:</span> <span class="kt">UByte</span><span class="o">,</span> <span class="n">c</span><span class="k">:</span> <span class="kt">UByte</span><span class="o">,</span> <span class="n">d</span><span class="k">:</span> <span class="kt">UByte</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">IpAddress</span>
+     <span class="o">|</span>   <span class="c1">// TODO: implement Ipv6 when needed
+</span>     <span class="o">|</span> 
+     <span class="o">|</span>   <span class="k">def</span> <span class="n">apply</span><span class="o">(</span><span class="n">a</span><span class="k">:</span> <span class="kt">UByte</span><span class="o">,</span> <span class="n">b</span><span class="k">:</span> <span class="kt">UByte</span><span class="o">,</span> <span class="n">c</span><span class="k">:</span> <span class="kt">UByte</span><span class="o">,</span> <span class="n">d</span><span class="k">:</span> <span class="kt">UByte</span><span class="o">)</span><span class="k">:</span> <span class="kt">IpAddress</span> <span class="o">=</span>
+     <span class="o">|</span>     <span class="nc">Ipv4</span><span class="o">(</span><span class="n">a</span><span class="o">,</span> <span class="n">b</span><span class="o">,</span> <span class="n">c</span><span class="o">,</span> <span class="n">d</span><span class="o">)</span>
+     <span class="o">|</span> <span class="o">}</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">IpAddress</span>
+<span class="n">warning</span><span class="k">:</span> <span class="kt">previously</span> <span class="kt">defined</span> <span class="kt">trait</span> <span class="kt">IpAddress</span> <span class="kt">is</span> <span class="kt">not</span> <span class="kt">a</span> <span class="kt">companion</span> <span class="kt">to</span> <span class="kt">object</span> <span class="kt">IpAddress.</span>
+<span class="kt">Companions</span> <span class="kt">must</span> <span class="kt">be</span> <span class="kt">defined</span> <span class="kt">together</span><span class="o">;</span> <span class="n">you</span> <span class="n">may</span> <span class="n">wish</span> <span class="n">to</span> <span class="n">use</span> <span class="k">:</span><span class="kt">paste</span> <span class="kt">mode</span> <span class="kt">for</span> <span class="kt">this.</span>
+
+<span class="kt">scala&gt;</span> <span class="c1">// We want an unsigned byte to represent the Prefix (at least for now)
+</span>     <span class="o">|</span> <span class="k">type</span> <span class="kt">Prefix</span> <span class="o">=</span> <span class="nc">UByte</span>
+<span class="n">defined</span> <span class="k">type</span> <span class="kt">alias</span> <span class="kt">Prefix</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">def</span> <span class="n">prefix</span><span class="o">(</span><span class="n">p</span><span class="k">:</span> <span class="kt">UByte</span><span class="o">)</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">Prefix</span><span class="o">]</span> <span class="k">=</span>
+     <span class="o">|</span>   <span class="k">if</span> <span class="o">(</span><span class="n">p</span> <span class="o">&lt;=</span> <span class="nc">UByte</span><span class="o">(</span><span class="mi">32</span><span class="o">)</span> <span class="o">&amp;&amp;</span> <span class="n">p</span> <span class="o">&gt;=</span> <span class="nc">UByte</span><span class="o">(</span><span class="mi">0</span><span class="o">))</span> <span class="nc">Some</span><span class="o">(</span><span class="n">p</span><span class="o">)</span> <span class="k">else</span> <span class="nc">None</span>
+<span class="n">prefix</span><span class="k">:</span> <span class="o">(</span><span class="kt">p:</span> <span class="kt">spire.math.UByte</span><span class="o">)</span><span class="kt">Option</span><span class="o">[</span><span class="kt">Prefix</span><span class="o">]</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Cidr</span><span class="o">(</span><span class="n">ip</span><span class="k">:</span> <span class="kt">IpAddress</span><span class="o">,</span> <span class="n">prefix</span><span class="k">:</span> <span class="kt">Prefix</span><span class="o">)</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">Cidr</span>
+</code></pre>
+</div>
+
+<p>So far we have addressed 1 through 4 of the list of problems we identified
+above. Let’s recap what we did:</p>
+
+<ol>
+  <li>We encoded the notion of region as a sum type and changed the type used
+from <code class="highlighter-rouge">String</code> to <code class="highlighter-rouge">Region</code>. We have eliminated a large number of possible
+invalid values from being used in it’s place such that non-existent AWS
+regions referenced would not even compile.</li>
+  <li>We encoded in our type signature for the <code class="highlighter-rouge">Vpc</code> product type (case class)
+that we do not require DHCP options identifier to construct a valid <code class="highlighter-rouge">Vpc</code>
+value. This will inform implementers of functions that use this value that
+this field is an optional value so they can plan accordingly.</li>
+  <li>We encoded the notion of instance tenancy as a sum type and switched from
+using a <code class="highlighter-rouge">String</code> to represent the possible values of it to this new type,
+<code class="highlighter-rouge">InstanceTenancy</code>. The compiler will not catch any fat fingering we may
+have made. Think of the potential troubleshooting and debugging time we
+gained back from this simple act.</li>
+  <li>We have encoded a more meaningful representation for CIDR values that will
+limit the possible values to valid basic constructions. A <code class="highlighter-rouge">String</code> value
+gives us know structure to verify and the validation logic on a <code class="highlighter-rouge">String</code>
+value for the CIDR case would be error prone and complex without decomposing
+into the structural elements of the value in the first place. Even using
+regular expressions to validate a <code class="highlighter-rouge">String</code> representing a CIDR requires us
+to decompose the value into its elements (plus it might not be very
+efficient but that is a secondary concern). :)</li>
+</ol>
+
+<p>Now we can tackle referential consistency of our string ids via a construct
+in Scala called value classes. This allows us to enforce type safety at
+compile-time without the runtime allocation overhead.</p>
+
+<p>For our purposes we will wrap up <code class="highlighter-rouge">String</code> identifiers designating what kind
+of identifier it refers to. As an example whenever we provision or query VPCs
+we can wrap the basic string identifier that AWS returns back as a specific
+type <code class="highlighter-rouge">VpcId</code>. This will not allocate a boxed value but will uniquely identify
+the type of <code class="highlighter-rouge">String</code> at compile-time.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">VpcId</span> <span class="o">(</span><span class="k">private</span> <span class="k">val</span> <span class="n">id</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">AnyVal</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">VpcId</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">DhcpOptionsId</span> <span class="k">private</span> <span class="o">(</span><span class="k">val</span> <span class="n">id</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">AnyVal</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">DhcpOptionsId</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Vpc</span><span class="o">(</span>
+     <span class="o">|</span>   <span class="n">cidrBlock</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">region</span><span class="k">:</span> <span class="kt">Region</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">dhcpOptionsId</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">DhcpOptionsId</span><span class="o">],</span>
+     <span class="o">|</span>   <span class="n">instanceTenancy</span><span class="k">:</span> <span class="kt">InstanceTenancy</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">isDefault</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">)</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">Vpc</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Subnet</span><span class="o">(</span>
+     <span class="o">|</span>   <span class="n">cidrBlock</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">vpcId</span><span class="k">:</span> <span class="kt">VpcId</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">availabilityZone</span><span class="k">:</span> <span class="kt">AvailabilityZone</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">defaultForAz</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">,</span>
+     <span class="o">|</span>   <span class="n">mapPublicOnLaunch</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">)</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">Subnet</span>
+</code></pre>
+</div>
+
+<p>We also need to make sure the functions provisioning or querying and returning
+these identifiers return the appropriate wrapper values.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// Note we are returning VpcId not String any more
+</span>     <span class="o">|</span> <span class="k">def</span> <span class="n">provisionVpc</span><span class="o">(</span><span class="n">vpc</span><span class="k">:</span> <span class="kt">Vpc</span><span class="o">)</span><span class="k">:</span> <span class="kt">VpcId</span> <span class="o">=</span> <span class="o">???</span>
+<span class="n">provisionVpc</span><span class="k">:</span> <span class="o">(</span><span class="kt">vpc:</span> <span class="kt">Vpc</span><span class="o">)</span><span class="kt">VpcId</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">def</span> <span class="n">defaultDhcpOptions</span><span class="o">(</span><span class="n">region</span><span class="k">:</span> <span class="kt">Region</span><span class="o">)</span><span class="k">:</span> <span class="kt">DhcpOptionsId</span> <span class="o">=</span> <span class="o">???</span>
+<span class="n">defaultDhcpOptions</span><span class="k">:</span> <span class="o">(</span><span class="kt">region:</span> <span class="kt">Region</span><span class="o">)</span><span class="kt">DhcpOptionsId</span>
+</code></pre>
+</div>
+
+<p>Now we will be able to see from the type signature something is amiss if we
+are returning a <code class="highlighter-rouge">VpcId</code> from a function named <code class="highlighter-rouge">defaultDhcpOptions</code>. Obviously
+that isn’t the level of sanity checking we are aiming for, but it’s a reason-
+able start for this session.</p>
+
+<p>You’ll note that we haven’t addressed the problem (yet) that we can simply
+construct invalid <code class="highlighter-rouge">VpcId</code> values by passing in illegal format of <code class="highlighter-rouge">String</code>
+value to the value class constructor. This will be addressed by a couple of
+different techniques in future tutorials. Just know that we will be returning
+to this. Promise. :)</p>
+
+<p>We could also replace the type alias for <code class="highlighter-rouge">Prefix</code> with a value class:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">Prefix</span> <span class="o">(</span><span class="k">val</span> <span class="n">b</span><span class="k">:</span> <span class="kt">Byte</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">AnyVal</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">Prefix</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">object</span> <span class="nc">Prefix</span> <span class="o">{</span>
+     <span class="o">|</span>   <span class="k">private</span> <span class="k">def</span> <span class="n">isValid</span><span class="o">(</span><span class="n">b</span><span class="k">:</span> <span class="kt">UByte</span><span class="o">)</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span>
+     <span class="o">|</span>     <span class="o">(</span><span class="n">b</span> <span class="o">&lt;=</span> <span class="nc">UByte</span><span class="o">(</span><span class="mi">32</span><span class="o">)</span> <span class="o">&amp;&amp;</span> <span class="n">b</span> <span class="o">&gt;=</span> <span class="nc">UByte</span><span class="o">(</span><span class="mi">0</span><span class="o">))</span>
+     <span class="o">|</span> 
+     <span class="o">|</span>   <span class="k">def</span> <span class="n">apply</span><span class="o">(</span><span class="n">b</span><span class="k">:</span> <span class="kt">UByte</span><span class="o">)</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">Prefix</span><span class="o">]</span> <span class="k">=</span>
+     <span class="o">|</span>     <span class="k">if</span> <span class="o">(</span><span class="n">isValid</span><span class="o">(</span><span class="n">b</span><span class="o">))</span> <span class="nc">Some</span><span class="o">(</span><span class="k">new</span> <span class="nc">Prefix</span><span class="o">(</span><span class="n">b</span><span class="o">.</span><span class="n">toByte</span><span class="o">))</span> <span class="k">else</span> <span class="nc">None</span>
+     <span class="o">|</span> <span class="o">}</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">Prefix</span>
+<span class="n">warning</span><span class="k">:</span> <span class="kt">previously</span> <span class="kt">defined</span> <span class="kt">class</span> <span class="kt">Prefix</span> <span class="kt">is</span> <span class="kt">not</span> <span class="kt">a</span> <span class="kt">companion</span> <span class="kt">to</span> <span class="kt">object</span> <span class="kt">Prefix.</span>
+<span class="kt">Companions</span> <span class="kt">must</span> <span class="kt">be</span> <span class="kt">defined</span> <span class="kt">together</span><span class="o">;</span> <span class="n">you</span> <span class="n">may</span> <span class="n">wish</span> <span class="n">to</span> <span class="n">use</span> <span class="k">:</span><span class="kt">paste</span> <span class="kt">mode</span> <span class="kt">for</span> <span class="kt">this.</span>
+</code></pre>
+</div>
+
+<p>The purpose of this initial tutorial was to introduce the reader to the
+utility of types generally and specifically how to start to make your APIs
+more type safe in Scala using non-structural techniques.</p>
+
+<p>Hopefully we can take away a sense of purpose in types. They don’t have to be
+source code annotations that just add more code bloat, they can add
+enormous <em>value</em> (yes, I couldn’t resist the pun). You might also have noted
+that we have gone quite far with types, yet we can still do more to limit
+the values we construt in our code to be only valid ones. How far can we take
+this? How far makes sense? Keep these questions in mind.</p>
+
+<p>The next tutorial in the series will walk through how we add some structure
+to our types with accompanying functions with specific properties we can
+use to reason about our code in more abstract ways.</p>
+
+<h2 id="acknowledgements">Acknowledgements</h2>
+
+<p>Two coworkers were kind enough to offer technical and editing advice for this
+tutorial. They are:</p>
+
+<ul>
+  <li><a href="https://github.com/trane">Andrew Kuhnhausen</a></li>
+  <li><a href="https://twitter.com/petercaswell">Peter Caswell</a></li>
+</ul>
+
+</article>
+
+      </div>
+    </div>
+    
+    <footer class="footer">
+	@2015 Susan Potter.
+</footer>
+
+    
+  </body>
+
+</html>

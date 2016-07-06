@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>    
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width initial-scale=1">
+
+  <title>Extending Syntax in Scala</title>
+  <meta name="description" content="Yesterday I learned something really cool. In Idris I can just do thisto extend the syntax:">
+
+  <link rel="stylesheet" href="/public/css/main.css">
+  <link rel="canonical" href="http://typedops.github.io/tutorials/2015/11/05/extending-syntax.html">
+  <link rel="alternate" type="application/atom+xml" title="TypedOps" href="http://typedops.github.io/feed.xml" />
+</head>
+
+
+  <body>
+    <header class="header">
+	<div class="header-container">
+		<div class="nav">
+			
+				<li>
+					<a href="/index.html">home</a>
+				</li>
+			
+			
+				<li>
+					<a href="/archive.html">archive</a>
+				</li>
+			
+			
+				<li>
+					<a href="/category.html">category</a>
+				</li>
+			
+			
+				<li>
+					<a href="/tag.html">tag</a>
+				</li>
+      
+		</div>
+		<div class="description"> Better infrastructure through types </div>
+		<ul class="social-links">
+			<li>
+				<a href="https://github.com/mbbx6spp" title="Github">
+					<img width="19px" height="19px" src="/public/images/github.png"/>
+				</a>
+			</li>
+			<li>
+				<a href="/feed.xml" title="RSS">
+					<img width="19px" height="19px" src="/public/images/rss.png"/>
+				</a>
+			</li>
+			<li>
+				<a href="https://twitter.com/SusanPotter" title="Twitter">
+					<img width="19px" height="19px" src="/public/images/twitter.png"/>
+				</a>
+			</li>
+		</ul>
+	</div>
+</header>
+
+    <br>
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="single row gutters">
+  <time class="published" datetime="2015-11-05">05 November 2015</time>
+  <h2>Extending Syntax in Scala</h2>
+
+  <p>Yesterday I learned something really cool. In Idris I can just do this
+to extend the syntax:</p>
+
+<pre><code class="language-idris">syntax [ma] "?" [a] = fromMaybe a ma
+</code></pre>
+
+<p>where <code class="highlighter-rouge">fromMaybe</code> is from the <code class="highlighter-rouge">Prelude.Maybe</code> module which has the type
+signature: <code class="highlighter-rouge">fromMaybe : Lazy a -&gt; Maybe a -&gt; a</code> so now I can do:</p>
+
+<pre><code class="language-idris">idris&gt; (Just 88) ? 77
+88 : Integer
+
+idris&gt; Nothing ? 77
+77 : Integer
+</code></pre>
+
+<p>So today we will see how much of a challenge it will be to do this in Scala.</p>
+
+<p><em>Hint: It might be a little more work, but doable.</em></p>
+
+<h2 id="setup">Setup</h2>
+
+<p>We will start out defining the sum type <code class="highlighter-rouge">Maybe</code> with data constructors <code class="highlighter-rouge">Nowt</code>
+(same as <code class="highlighter-rouge">Nothing</code> in Idris) and <code class="highlighter-rouge">Just</code> which wraps an underlying <code class="highlighter-rouge">A</code> value.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">sealed</span> <span class="k">abstract</span> <span class="k">class</span> <span class="nc">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+<span class="nc">defined</span> <span class="k">class</span> <span class="nc">Maybe</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Just</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">Just</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Nowt</span><span class="o">[</span><span class="kt">A</span><span class="o">]()</span> <span class="k">extends</span> <span class="nc">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+<span class="n">defined</span> <span class="k">class</span> <span class="nc">Nowt</span>
+</code></pre>
+</div>
+
+<p>Now we just have to define the <code class="highlighter-rouge">fromMaybe[A]</code> decorator. We can do this in the
+companion object:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">object</span> <span class="nc">Maybe</span> <span class="o">{</span>
+     <span class="o">|</span>   <span class="k">def</span> <span class="n">fromMaybe</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)(</span><span class="n">ma</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">])</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=</span> <span class="n">ma</span> <span class="k">match</span> <span class="o">{</span>
+     <span class="o">|</span>     <span class="k">case</span> <span class="nc">Just</span><span class="o">(</span><span class="n">x</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">x</span>
+     <span class="o">|</span>     <span class="k">case</span> <span class="nc">Nowt</span><span class="o">()</span> <span class="k">=&gt;</span> <span class="n">a</span>
+     <span class="o">|</span>   <span class="o">}</span>
+     <span class="o">|</span> <span class="o">}</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">Maybe</span>
+<span class="n">warning</span><span class="k">:</span> <span class="kt">previously</span> <span class="kt">defined</span> <span class="kt">class</span> <span class="kt">Maybe</span> <span class="kt">is</span> <span class="kt">not</span> <span class="kt">a</span> <span class="kt">companion</span> <span class="kt">to</span> <span class="kt">object</span> <span class="kt">Maybe.</span>
+<span class="kt">Companions</span> <span class="kt">must</span> <span class="kt">be</span> <span class="kt">defined</span> <span class="kt">together</span><span class="o">;</span> <span class="n">you</span> <span class="n">may</span> <span class="n">wish</span> <span class="n">to</span> <span class="n">use</span> <span class="k">:</span><span class="kt">paste</span> <span class="kt">mode</span> <span class="kt">for</span> <span class="kt">this.</span>
+</code></pre>
+</div>
+
+<p>Now we have what was already provided by Idris in the Prelude, therefore so
+far, we have been setting up our Scala code to mimick what we had in Idris.
+(Note: we could have also used <code class="highlighter-rouge">Option[A]</code> and related <code class="highlighter-rouge">getOrElse</code> method
+instead of the above).</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">object</span> <span class="nc">Maybe</span> <span class="o">{</span> <span class="n">self</span> <span class="k">=&gt;</span> <span class="cm">/* Note: newly added reference to outer object */</span>
+     <span class="o">|</span>   <span class="k">def</span> <span class="n">fromMaybe</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)(</span><span class="n">ma</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">])</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=</span> <span class="n">ma</span> <span class="k">match</span> <span class="o">{</span>
+     <span class="o">|</span>     <span class="k">case</span> <span class="nc">Just</span><span class="o">(</span><span class="n">x</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">x</span>
+     <span class="o">|</span>     <span class="k">case</span> <span class="nc">Nowt</span><span class="o">()</span> <span class="k">=&gt;</span> <span class="n">a</span>
+     <span class="o">|</span>   <span class="o">}</span>
+     <span class="o">|</span> 
+     <span class="o">|</span>   <span class="cm">/* Helpers for value construction */</span>
+     <span class="o">|</span>   <span class="k">def</span> <span class="n">apply</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=</span> <span class="k">if</span> <span class="o">(</span><span class="n">a</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="nc">Nowt</span><span class="o">()</span> <span class="k">else</span> <span class="nc">Just</span><span class="o">(</span><span class="n">a</span><span class="o">)</span>
+     <span class="o">|</span>   <span class="k">def</span> <span class="n">nowt</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Nowt</span><span class="o">()</span>
+     <span class="o">|</span>   <span class="k">def</span> <span class="n">just</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span> <span class="k">=</span> <span class="nc">Maybe</span><span class="o">(</span><span class="n">a</span><span class="o">)</span>
+     <span class="o">|</span> 
+     <span class="o">|</span>   <span class="cm">/* Newly added code */</span>
+     <span class="o">|</span>   <span class="k">implicit</span> <span class="k">class</span> <span class="nc">MaybeOps</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="k">val</span> <span class="n">ma</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">])</span> <span class="k">extends</span> <span class="nc">AnyVal</span> <span class="o">{</span>
+     <span class="o">|</span>     <span class="k">def</span> <span class="o">?(</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=</span> <span class="n">self</span><span class="o">.</span><span class="n">fromMaybe</span><span class="o">(</span><span class="n">a</span><span class="o">)(</span><span class="n">ma</span><span class="o">)</span>
+     <span class="o">|</span>   <span class="o">}</span>
+     <span class="o">|</span> <span class="o">}</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">Maybe</span>
+<span class="n">warning</span><span class="k">:</span> <span class="kt">previously</span> <span class="kt">defined</span> <span class="kt">class</span> <span class="kt">Maybe</span> <span class="kt">is</span> <span class="kt">not</span> <span class="kt">a</span> <span class="kt">companion</span> <span class="kt">to</span> <span class="kt">object</span> <span class="kt">Maybe.</span>
+<span class="kt">Companions</span> <span class="kt">must</span> <span class="kt">be</span> <span class="kt">defined</span> <span class="kt">together</span><span class="o">;</span> <span class="n">you</span> <span class="n">may</span> <span class="n">wish</span> <span class="n">to</span> <span class="n">use</span> <span class="k">:</span><span class="kt">paste</span> <span class="kt">mode</span> <span class="kt">for</span> <span class="kt">this.</span>
+</code></pre>
+</div>
+
+<p>Now we can test that we can use the new syntax (<code class="highlighter-rouge">?</code> operator) the way we want:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">object</span> <span class="nc">Main</span> <span class="k">extends</span> <span class="nc">App</span> <span class="o">{</span>
+     <span class="o">|</span>   <span class="k">import</span> <span class="nn">Maybe._</span>
+     <span class="o">|</span> 
+     <span class="o">|</span>   <span class="k">val</span> <span class="n">mint1</span> <span class="k">=</span> <span class="n">just</span><span class="o">(</span><span class="mi">30</span><span class="o">)</span>
+     <span class="o">|</span>   <span class="k">val</span> <span class="n">mint2</span> <span class="k">=</span> <span class="n">nowt</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span>
+     <span class="o">|</span> 
+     <span class="o">|</span>   <span class="n">println</span><span class="o">(</span><span class="n">mint1</span> <span class="o">?</span> <span class="mi">60</span><span class="o">)</span>
+     <span class="o">|</span>   <span class="n">println</span><span class="o">(</span><span class="n">mint2</span> <span class="o">?</span> <span class="mi">60</span><span class="o">)</span>
+     <span class="o">|</span> <span class="o">}</span>
+<span class="n">defined</span> <span class="k">object</span> <span class="nc">Main</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="nc">Main</span><span class="o">.</span><span class="n">main</span><span class="o">(</span><span class="nc">Array</span><span class="o">.</span><span class="n">empty</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span>
+<span class="mi">30</span>
+<span class="mi">60</span>
+</code></pre>
+</div>
+
+<p>We added decoration method <code class="highlighter-rouge">?</code> to <code class="highlighter-rouge">Maybe[A]</code> values by importing the companion
+object implicit value class <code class="highlighter-rouge">MaybeOps[A]</code> definition into scope.</p>
+
+<p>To recap we only need to add the following code to <em>provide</em> the syntax
+within the companion object:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>  <span class="k">implicit</span> <span class="k">class</span> <span class="nc">MaybeOps</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="k">val</span> <span class="n">ma</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">])</span> <span class="k">extends</span> <span class="nc">AnyVal</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="o">?(</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=</span> <span class="n">self</span><span class="o">.</span><span class="n">fromMaybe</span><span class="o">(</span><span class="n">a</span><span class="o">)(</span><span class="n">ma</span><span class="o">)</span>
+  <span class="o">}</span>
+</code></pre>
+</div>
+
+<p>On the consuming side we just need to import the top-level companion object
+content into scope like so:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>  <span class="k">import</span> <span class="nn">Maybe._</span>
+</code></pre>
+</div>
+
+<p>For bonus points, we added a couple of smart value constructors in the
+companion object:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span>   <span class="k">def</span> <span class="n">apply</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=</span> <span class="k">if</span> <span class="o">(</span><span class="n">a</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="nc">Nowt</span><span class="o">()</span> <span class="k">else</span> <span class="nc">Just</span><span class="o">(</span><span class="n">a</span><span class="o">)</span>
+<span class="n">apply</span><span class="k">:</span> <span class="err">[</span><span class="kt">A</span><span class="err">]</span><span class="o">(</span><span class="kt">a:</span> <span class="kt">A</span><span class="o">)</span><span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+
+<span class="n">scala</span><span class="o">&gt;</span>   <span class="k">def</span> <span class="n">nowt</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Nowt</span><span class="o">()</span>
+<span class="n">nowt</span><span class="k">:</span> <span class="err">[</span><span class="kt">A</span><span class="err">]</span><span class="o">=&gt;</span> <span class="nc">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+
+<span class="n">scala</span><span class="o">&gt;</span>   <span class="k">def</span> <span class="n">just</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span> <span class="k">=</span> <span class="nc">Maybe</span><span class="o">(</span><span class="n">a</span><span class="o">)</span>
+<span class="n">just</span><span class="k">:</span> <span class="err">[</span><span class="kt">A</span><span class="err">]</span><span class="o">(</span><span class="kt">a:</span> <span class="kt">A</span><span class="o">)</span><span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+</code></pre>
+</div>
+
+<p>This makes consuming code for constructing <code class="highlighter-rouge">Maybe[A]</code> values simpler
+with appropriate type inference (i.e. we want <code class="highlighter-rouge">Maybe[A]</code> to always
+be inferred not <code class="highlighter-rouge">Just[A]</code> or <code class="highlighter-rouge">Nowt[A]</code>).</p>
+
+<p>If we had not added these value constructors or not used them we
+would have this problem on our hands:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span>   <span class="k">val</span> <span class="n">mint1</span> <span class="k">=</span> <span class="nc">Just</span><span class="o">(</span><span class="mi">30</span><span class="o">)</span>
+<span class="n">mint1</span><span class="k">:</span> <span class="kt">Just</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Just</span><span class="o">(</span><span class="mi">30</span><span class="o">)</span>
+
+<span class="n">scala</span><span class="o">&gt;</span>   <span class="k">val</span> <span class="n">mint2</span> <span class="k">=</span> <span class="nc">Nowt</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span>
+<span class="n">mint2</span><span class="k">:</span> <span class="kt">Nowt</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Nowt</span><span class="o">()</span>
+</code></pre>
+</div>
+
+<p>Look at the types inferred by Scala. In some scenarios, this might
+give you problems.</p>
+
+<h2 id="review">Review</h2>
+
+<p>Scala provides a way to extend syntax in a few different ways. Above we
+showed one way where we can still uphold the level of typesafety that our API
+requires yet still offer some level of syntax/operator decoration or addition.</p>
+
+<p>How could you effectively enhance your operations management libraries with
+the technique outlined above?</p>
+
+</article>
+
+      </div>
+    </div>
+    
+    <footer class="footer">
+	@2015 Susan Potter.
+</footer>
+
+    
+  </body>
+
+</html>
