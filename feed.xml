@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>TypedOps</title>
-    <link>http://typedops.github.io</link>
-    <atom:link href="http://typedops.github.io/feed.xml" rel="self" type="application/rss+xml" />
+    <link>http://typed.funops.co</link>
+    <atom:link href="http://typed.funops.co/feed.xml" rel="self" type="application/rss+xml" />
     <description>Tutorials and code experiments about using types to build better infrastructure</description>
     <language>en-us</language>
-    <pubDate>Thu, 07 Jul 2016 13:35:52 -0500</pubDate>
-    <lastBuildDate>Thu, 07 Jul 2016 13:35:52 -0500</lastBuildDate>
+    <pubDate>Thu, 07 Jul 2016 16:48:45 -0500</pubDate>
+    <lastBuildDate>Thu, 07 Jul 2016 16:48:45 -0500</lastBuildDate>
 
     
       <item>
         <title>The Unreasonable Effectiveness of Reasoning: Eliminating Bottom</title>
-        <link>http://typedops.github.io/tutorials/2016/05/25/unreasonable-effectiveness-of-reasoning-understanding-bottom.html</link>
+        <link>http://typed.funops.co/tutorials/2016/05/25/unreasonable-effectiveness-of-reasoning-understanding-bottom.html</link>
         <pubDate>Wed, 25 May 2016 19:50:00 -0500</pubDate>
         <author>Susan Potter</author>
         <description>&lt;p&gt;This article provides a simple code-level case study to understand
@@ -418,7 +418,7 @@ a rough draft of this post for flow and cohesiveness:&lt;/p&gt;
     
       <item>
         <title>Extending Syntax in Scala</title>
-        <link>http://typedops.github.io/tutorials/2015/11/05/extending-syntax.html</link>
+        <link>http://typed.funops.co/tutorials/2015/11/05/extending-syntax.html</link>
         <pubDate>Thu, 05 Nov 2015 13:29:00 -0600</pubDate>
         <author>Susan Potter</author>
         <description>&lt;p&gt;Yesterday I learned something really cool. In Idris I can just do this
@@ -582,7 +582,7 @@ the technique outlined above?&lt;/p&gt;
     
       <item>
         <title>Why Use Types?</title>
-        <link>http://typedops.github.io/tutorials/2015/10/09/why-use-types.html</link>
+        <link>http://typed.funops.co/tutorials/2015/10/09/why-use-types.html</link>
         <pubDate>Fri, 09 Oct 2015 05:50:00 -0500</pubDate>
         <author>Susan Potter</author>
         <description>&lt;p&gt;Types are one of the most mainstream and widespread applied formal methods
@@ -760,7 +760,7 @@ like so:&lt;/p&gt;
 &lt;span class=&quot;n&quot;&gt;scala&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;implicit&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;regionEquality&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Eq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
      &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;   &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;eqv&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;r1&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r2&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Boolean&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r2&lt;/span&gt;
      &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;regionEquality&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;cats.Eq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;$anon$1&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;c2f2e1a&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;regionEquality&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;cats.Eq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;$anon$1&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b16f0a4&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
