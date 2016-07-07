@@ -6,8 +6,8 @@
     <atom:link href="http://typedops.github.io/feed.xml" rel="self" type="application/rss+xml" />
     <description>Tutorials and code experiments about using types to build better infrastructure</description>
     <language>en-us</language>
-    <pubDate>Wed, 06 Jul 2016 14:57:09 -0500</pubDate>
-    <lastBuildDate>Wed, 06 Jul 2016 14:57:09 -0500</lastBuildDate>
+    <pubDate>Thu, 07 Jul 2016 12:17:20 -0500</pubDate>
+    <lastBuildDate>Thu, 07 Jul 2016 12:17:20 -0500</lastBuildDate>
 
     
       <item>
@@ -15,7 +15,13 @@
         <link>http://typedops.github.io/tutorials/2016/05/25/unreasonable-effectiveness-of-reasoning-understanding-bottom.html</link>
         <pubDate>Wed, 25 May 2016 19:50:00 -0500</pubDate>
         <author>Susan Potter</author>
-        <description>&lt;h2 id=&quot;background-mathematical-bottom-&quot;&gt;Background: (Mathematical) Bottom (⊥)&lt;/h2&gt;
+        <description>&lt;p&gt;This article provides a simple code-level case study to understand
+how functional programming libraries have made different trade-offs and
+explore related API-level design choices in a neutral language where we
+consider the ability of the consumer of the API to reason equationally about
+the API (read: types) you offer.&lt;/p&gt;
+
+&lt;h2 id=&quot;background-mathematical-bottom-&quot;&gt;Background: (Mathematical) Bottom (⊥)&lt;/h2&gt;
 
 &lt;p&gt;Wikipedia states this as the definition:&lt;/p&gt;
 
@@ -39,6 +45,16 @@ inflict the operating environment your program runs within with an unspoken
 side effect.&lt;/p&gt;
 &lt;/blockquote&gt;
 
+&lt;p&gt;Real world bottom:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;returning &lt;code class=&quot;highlighter-rouge&quot;&gt;null&lt;/code&gt; (Java, Scala), &lt;code class=&quot;highlighter-rouge&quot;&gt;nil&lt;/code&gt; (Ruby), &lt;code class=&quot;highlighter-rouge&quot;&gt;None&lt;/code&gt; (Python), etc.&lt;/li&gt;
+  &lt;li&gt;throwing/raising an exception&lt;/li&gt;
+  &lt;li&gt;non-terminating functions (a function that will never normally return
+unless it encounters an exception); this is needed for building long
+running servers or operating systems.&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;h3 id=&quot;references&quot;&gt;References&lt;/h3&gt;
 
 &lt;ul&gt;
@@ -55,28 +71,54 @@ you to reason mathematically about your code. In truly exceptional cases
 this is necessary to have an operationally well-behaved software in the real
 world. One example is a runtime error that unwinds the stack to denote an out
 of memory system condition was met. In such a case, what can your application
-reasonably do to counter this problem? I would argue nothing, except maybe
-log it and exit if that is even possible (at least in the languages and
-environments I have experience in which isn’t to say I know everything).&lt;/p&gt;
+reasonably do to counter this problem? I would argue nothing in most
+runtimes, except maybe log it and exit if that is even possible.&lt;/p&gt;
 
 &lt;p&gt;Knowing how, when and what to reason about in your codebase is the key to
 applying the lambda calculus to your software in the real world. Even
 Haskellers have portions of their code they cannot equationally reason about
-to cater for their real world operational requirements. Knowing the
-vulnerabilities in your ability to reason about your code is key to knowing
-when and where you can apply equational reasoning.&lt;/p&gt;
+to cater for their real world operational needs. Knowing the vulnerabilities
+in the ability to reason about your code is key building more well reasoned
+software.&lt;/p&gt;
 
 &lt;p&gt;Limiting the surface area where &lt;em&gt;bottom&lt;/em&gt; may arise in your code reduces the
-possibility of wide classes of runtime bugs.&lt;/p&gt;
-
-&lt;p&gt;The rest of this article provides a simple code-level case study to understand
-how functional programming libraries have made a different trade-off with
-respect to the ability to reason logically about their standard library code.&lt;/p&gt;
+possibility of wide classes of runtime bugs albeit at possible costs of
+more resource usage.&lt;/p&gt;
 
 &lt;h2 id=&quot;case-study-system-environment-variable-lookup&quot;&gt;Case Study: System Environment Variable Lookup&lt;/h2&gt;
 
 &lt;p&gt;Just doing something as simple as looking up an environment variable yields
 &lt;em&gt;bottom&lt;/em&gt; in OCaml but not in Haskell/GHC. Let’s compare approaches.&lt;/p&gt;
+
+&lt;h3 id=&quot;ocaml-4010&quot;&gt;OCaml 4.01.0&lt;/h3&gt;
+
+&lt;p&gt;The version of OCaml can likely vary from this version to yield the
+same results, but I have only tested with 4.01.0.&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;git:master?+] spotter@redhorn ~/src/work/root
+&lt;span class=&quot;gp&quot;&gt;$ &lt;/span&gt;ocaml
+        OCaml version 4.01.0
+
+&lt;span class=&quot;c&quot;&gt;# open Sys;;&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# getenv;;&lt;/span&gt;
+- : string -&amp;gt; string &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &amp;lt;fun&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;The OCaml type is simple (&lt;code class=&quot;highlighter-rouge&quot;&gt;string -&amp;gt; string&lt;/code&gt;). This simplicity comes at a
+cost because we cannot:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;describe the program’s logic separately from when it is
+performed/evaluated. Once you call this function a side effect is imposed
+on the operating environment. In this case we are just querying the system
+environment which may not have negative impact, but in many other cases it
+may, e.g. setting variable value in system environment.&lt;/li&gt;
+  &lt;li&gt;denote by a specific return value that the environment variable is not set.
+The way that OCaml caters for this case is by raising an exception that
+unwinds the stack. i.e. producing a bottom value. This is not represented
+to the caller in the type signature.&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;h3 id=&quot;haskellghc-710x&quot;&gt;Haskell/GHC 7.10.x+&lt;/h3&gt;
 
@@ -93,15 +135,15 @@ Leaving GHCi.
 &lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
-&lt;p&gt;Type signature of getting the value of an environment variable in
-&lt;code class=&quot;highlighter-rouge&quot;&gt;System.Posix&lt;/code&gt; is:&lt;/p&gt;
+&lt;p&gt;The type signature of getting the value of an environment variable in
+&lt;code class=&quot;highlighter-rouge&quot;&gt;System.Posix&lt;/code&gt; module is:&lt;/p&gt;
 
 &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Maybe&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
-&lt;p&gt;In English this translates to: given a String we produce a program in the
-&lt;code class=&quot;highlighter-rouge&quot;&gt;IO&lt;/code&gt; context where when performed will return a &lt;code class=&quot;highlighter-rouge&quot;&gt;Maybe String&lt;/code&gt; value.&lt;/p&gt;
+&lt;p&gt;In English this translates to: &lt;em&gt;given a String we produce a program in the
+&lt;code class=&quot;highlighter-rouge&quot;&gt;IO&lt;/code&gt; context where when performed will return a &lt;code class=&quot;highlighter-rouge&quot;&gt;Maybe String&lt;/code&gt; value.&lt;/em&gt;&lt;/p&gt;
 
 &lt;p&gt;Notice here that the module &lt;code class=&quot;highlighter-rouge&quot;&gt;System.Posix&lt;/code&gt; provides a function that does two
 things:&lt;/p&gt;
@@ -123,39 +165,28 @@ where &lt;code class=&quot;highlighter-rouge&quot;&gt;e&lt;/code&gt; is a coprod
 possible in the context of the function.&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&quot;ocaml-4010&quot;&gt;OCaml 4.01.0&lt;/h3&gt;
-
-&lt;p&gt;Again the version of OCaml can likely vary from this version to yield the
-same results, but I have only tested with 4.01.0.&lt;/p&gt;
-
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;git:master?+] spotter@redhorn ~/src/work/root
-&lt;span class=&quot;gp&quot;&gt;$ &lt;/span&gt;ocaml
-        OCaml version 4.01.0
-
-&lt;span class=&quot;c&quot;&gt;# open Sys;;&lt;/span&gt;
-&lt;span class=&quot;c&quot;&gt;# getenv;;&lt;/span&gt;
-- : string -&amp;gt; string &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &amp;lt;fun&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;The OCaml type is much simpler (&lt;code class=&quot;highlighter-rouge&quot;&gt;string -&amp;gt; string&lt;/code&gt;) but at a cost because now
-we cannot do the following:&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;Cannot describe the program’s logic separately from when it is
-performed/evaluated. Once you call this function a side effect is imposed
-on the operating environment. In this case we are just querying the system
-environment which may not have negative impact, but in many other cases it
-may, e.g. setting variable value in system environment.&lt;/li&gt;
-  &lt;li&gt;The return value also doesn’t denote that the variable key may not exist or
-be set at all in the environment. The way that OCaml caters for this case
-is by raising an exception that unwinds the stack. i.e. producing a bottom
-value. This is not represented to the caller in the type signature.&lt;/li&gt;
-&lt;/ul&gt;
-
 &lt;h2 id=&quot;usage&quot;&gt;Usage&lt;/h2&gt;
 
 &lt;p&gt;Usage of the respective APIs.&lt;/p&gt;
+
+&lt;h3 id=&quot;ocaml&quot;&gt;OCaml&lt;/h3&gt;
+
+&lt;p&gt;Follow along in your &lt;code class=&quot;highlighter-rouge&quot;&gt;ocaml&lt;/code&gt; REPL:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;#&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getenv&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;HOME&quot;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;/home/spotter&quot;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;#&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getenv&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;HOME2&quot;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
+&lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;Not_found&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;
+&lt;span class=&quot;err&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;D&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;Ouch! We do not have the ability to encapsulate the effects and decide &lt;em&gt;when&lt;/em&gt;
+to perform them without the context in the return type (&lt;code class=&quot;highlighter-rouge&quot;&gt;IO a&lt;/code&gt; in the
+Haskell/GHC case). We also don’t receive a type expressing the optionality
+of the result which forces &lt;em&gt;bottom&lt;/em&gt; be returned.&lt;/p&gt;
 
 &lt;h3 id=&quot;haskell&quot;&gt;Haskell&lt;/h3&gt;
 
@@ -174,6 +205,8 @@ to calling within the REPL without using &lt;code class=&quot;highlighter-rouge&
 get an &lt;code class=&quot;highlighter-rouge&quot;&gt;IO&lt;/code&gt; action (aka &lt;em&gt;program&lt;/em&gt;) which we can combine with other &lt;code class=&quot;highlighter-rouge&quot;&gt;IO&lt;/code&gt;
 actions to produce a new and improved program in the &lt;code class=&quot;highlighter-rouge&quot;&gt;IO&lt;/code&gt; context to later
 perform/execute it.&lt;/p&gt;
+
+&lt;p&gt;Follow along in your own &lt;code class=&quot;highlighter-rouge&quot;&gt;ghci&lt;/code&gt; REPL.&lt;/p&gt;
 
 &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kt&quot;&gt;Prelude&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;System.Posix&lt;/span&gt;
 &lt;span class=&quot;kt&quot;&gt;Prelude&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Posix&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;let&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a0&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getE&lt;/span&gt;
@@ -197,44 +230,173 @@ perform/execute it.&lt;/p&gt;
 &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;unset&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;()&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;it&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;()&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;Prelude&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Posix&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;quit&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
-&lt;h3 id=&quot;ocaml&quot;&gt;OCaml&lt;/h3&gt;
+&lt;h2 id=&quot;trade-offs&quot;&gt;Trade-offs&lt;/h2&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;#&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getenv&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;HOME&quot;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;/home/spotter&quot;&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;#&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getenv&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;HOME2&quot;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
-&lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;Not_found&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Let’s look at each of these API choices in Scala (a neutral language):&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cm&quot;&gt;/*
+ * Using Scalaz Effect v7.2.1:
+ *    &quot;org.scalaz&quot; %% &quot;scalaz-effect&quot; % &quot;7.2.1&quot;
+ */&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;scalaz._&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Scalaz&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;_&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// import scalaz._
+// import Scalaz._
+&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;scalaz.effect._&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// import scalaz.effect._
+&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;EnvError&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;message&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined class EnvError
+&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SysEnv0&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;cm&quot;&gt;/**
+    * This function is side effecting:
+    * We do not separate performance of the effects from
+    * building the program in the context nor does it denote
+    * an unset environment variable in any meaningful way (it
+    * returns a null value if unset) which is another form of
+    * bottom. This yields code littered with null checks diluting
+    * application codebase where business logic should be central
+    * focus.
+    */&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getEnv0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getOrElse&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+
+  &lt;span class=&quot;cm&quot;&gt;/**
+    * This function is side effecting:
+    * We do not separate performance of the effects from
+    * building the program in the context nor do we represent
+    * optionality of the return type in any meaningful way, this
+    * definition uses empty string to denote an unset environment
+    * variable which is not a unique value but is not a bottom value
+    * case as in the first definition. However, we lose the ability
+    * to tell the case where the environment variable is not set
+    * apart from the case where the environment variable was set to
+    * a value of the empty string. This may not be interesting for
+    * your needs, so you get to decide.
+    */&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getEnv1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getOrElse&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+
+  &lt;span class=&quot;cm&quot;&gt;/**
+    * This function is side effecting:
+    * We still do not separate performance of the effects from
+    * building the program as a value and we denote the case of
+    * an environment variable name not set with a runtime exception
+    * which is another form of bottom value returned.
+    */&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getEnv2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getOrElse&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;throw&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;RuntimeException&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Key ${key} not found&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt;
+
+  &lt;span class=&quot;cm&quot;&gt;/**
+    * This function is side effecting:
+    * We are not yet separating program as a value that can be
+    * combined with other programs in the same context using
+    * simple and common combinators, but in this type signature
+    * we explicitly denote the optionality of the returned value
+    * for the case where the environment variable is not set.
+    */&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getEnv3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Option&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+
+  &lt;span class=&quot;cm&quot;&gt;/**
+    * This function is effectful:
+    * We are building a program as a value in the IO context. We also
+    * denote the optionality of the underlying program&#39;s return type
+    * with Option[String]. These are all good things from the perspective
+    * of equationally reasoning about your code.
+    */&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getEnv4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Option&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+  &lt;span class=&quot;cm&quot;&gt;/**
+    * This function is effectful:
+    * We are building a program as a value in the IO context to be
+    * performed at a later time once it is combined with other IO
+    * programs (or values representing programs that can be translated
+    * to the IO context). We also provide more context in the specific
+    * error case where the environment variable is not set with a message
+    * that shows a message containing the key name. This could be made more
+    * explicit if we passed the value constructor for the EnvError two
+    * arguments where one is the name of the environment variable and the
+    * other is the message.
+    */&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getEnv5&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;EnvError&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;\/&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;\/&amp;gt;&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;EnvError&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Couldn&#39;t find key ${key}.&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined object SysEnv0
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
-&lt;p&gt;Ouch! We have lost the ability to encapsulate the effects and decide &lt;em&gt;when&lt;/em&gt;
-to perform them without the effect context in the return type (&lt;code class=&quot;highlighter-rouge&quot;&gt;IO&lt;/code&gt; in the
-Haskell/GHC case). We also don’t receive a type expressing the optionality
-of the result which forces &lt;em&gt;bottom&lt;/em&gt; be returned.&lt;/p&gt;
+&lt;p&gt;By wrapping your return values inside effects/contexts you do require more
+from the consumer of your API to get at the “happy path” result, but you
+provide much more control and/or context for the consumer of your API with
+additional type safety that can help in refactoring your code base. In the
+non-happy path cases the extra control and context is a positive since
+you would need to wrap exception handling code around the call site for
+each API use.&lt;/p&gt;
 
-&lt;h2 id=&quot;tradeoffs&quot;&gt;Tradeoffs&lt;/h2&gt;
+&lt;p&gt;Depending on your programming environment and requirements you may need to
+weigh the memory and CPU cycle costs of this extra wrapping. Make sure you
+measure whether this impacts your system negatively before prematurely
+optimizing and relatively prioritize the importance of higher-level
+abstraction and control over specific performance characteristics based
+on application need.&lt;/p&gt;
 
-&lt;p&gt;There are some implementations of the equivalent &lt;code class=&quot;highlighter-rouge&quot;&gt;getenv&lt;/code&gt; functionality
-in other functional languages that return an empty &lt;code class=&quot;highlighter-rouge&quot;&gt;string&lt;/code&gt; as an
-alternative to an exception. In this case the consumer of the API loses the
-ability to tell between the case of an environment variable set to the empty
-string and an unset environment variable. This may be perfectly acceptable
-for your needs. As the API designer you get to decide where to draw the line.&lt;/p&gt;
+&lt;p&gt;There is a dirty little secret: you don’t have to stop at &lt;code class=&quot;highlighter-rouge&quot;&gt;IO&lt;/code&gt;. In fact,
+it is typically preferrable to wrap/layer into more specific contexts with
+limited operations/constructors and then translate to the &lt;code class=&quot;highlighter-rouge&quot;&gt;IO&lt;/code&gt; context at the
+end before performing/executing the &lt;code class=&quot;highlighter-rouge&quot;&gt;IO&lt;/code&gt; program. You can find out more by
+reviewing literature (and possibly future posts on this blog) on free monads
+or extensible effects with the effect monad (sometimes referred to as &lt;code class=&quot;highlighter-rouge&quot;&gt;Eff&lt;/code&gt;).&lt;/p&gt;
 
-&lt;p&gt;By wrapping your return values inside contexts you do require more from
-the consumer to get at the “happy path” result, but you provide much more
-control and/or context for the consumer of your API with additional type
-safety that can help in refactoring your code base. Depending on your
-programming environment and requirements you may need to weigh the memory and
-CPU cycle costs of this extra wrapping. Make sure you measure whether this
-impacts your system negatively before prematurely optimizing though.&lt;/p&gt;
+&lt;p&gt;The moral of the story is you must remember the ability to reason about the
+APIs you design are influenced by how much you make an effort to eliminate
+bottom.&lt;/p&gt;
 
-&lt;p&gt;The moral of the story is you must remember the limits of your ability to
-reason about the code with the different API design choices available to you.&lt;/p&gt;
+&lt;p&gt;As the API designer you get to decide where to draw the line. It would be
+prudent to consider the usability of your API as a consumer. Remember if
+your library/API does not need to be highly tuned you can always provide
+simpler API on top of better defined (from an equational reasoning
+perspective) to fit more consumer needs. Let’s look below to see what this
+could look like:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SysEnv1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getEnv0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;getEnv2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;catch&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;re&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;RuntimeException&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// this is crazy, don&#39;t do this.
+&lt;/span&gt;    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getEnv1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;getEnv0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;match&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;&quot;&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;    &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getEnv2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;getEnv3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;match&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Some&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;None&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;throw&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;RuntimeException&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Key ${key} not found.&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getEnv3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Option&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;getEnv4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;unsafePerformIO&lt;/span&gt;
+
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getEnv4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Option&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;getEnv5&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;_&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;toOption&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getEnv5&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;EnvError&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;\/&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;\/&amp;gt;&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;EnvError&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Couldn&#39;t find key ${key}.&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined object SysEnv1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
 
 &lt;p&gt;Cheers and happy reasoning.&lt;/p&gt;
 
@@ -570,7 +732,7 @@ credentials when using specific regions vs others:&lt;/p&gt;
 &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;scala&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// we are just mocking out this function for now and not *doing* anything yet
 &lt;/span&gt;     &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;provisionVpc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vpc&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Vpc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
      &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;   &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vpc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;region&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;us-west-1&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;vpc-123456&quot;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;vpc-654321&quot;&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;&amp;gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;warning:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;and&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;are&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;unrelated:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;they&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;will&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;most&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;likely&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;never&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;compare&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;equal&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;&amp;gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;23&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;warning:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;and&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;are&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;unrelated:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;they&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;will&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;most&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;likely&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;never&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;compare&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;equal&lt;/span&gt;
          &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vpc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;region&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;us-west-1&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;vpc-123456&quot;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;vpc-654321&quot;&lt;/span&gt;
                         &lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;provisionVpc&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;vpc:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Vpc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;
@@ -594,7 +756,7 @@ like so:&lt;/p&gt;
 &lt;span class=&quot;n&quot;&gt;scala&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;implicit&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;regionEquality&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Eq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
      &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;   &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;eqv&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;r1&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r2&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Boolean&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r2&lt;/span&gt;
      &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;regionEquality&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;cats.Eq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;$anon$1&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;77&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a28a63&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;regionEquality&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;cats.Eq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;$anon$1&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;13d&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b7a78&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
@@ -606,7 +768,7 @@ check different types for equality:&lt;/p&gt;
 &lt;/span&gt;     &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// want!!!)
 &lt;/span&gt;     &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;provisionVpc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vpc&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Vpc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
      &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;   &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vpc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;region&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;===&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;us-west-1&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;vpc-123456&quot;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;vpc-654321&quot;&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;&amp;gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;33&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;error:&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;mismatch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;&amp;gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;34&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;error:&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;mismatch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
  &lt;span class=&quot;n&quot;&gt;found&lt;/span&gt;   &lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;us-west-&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;1&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
  &lt;span class=&quot;kt&quot;&gt;required:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;
          &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vpc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;region&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;===&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;us-west-1&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;vpc-123456&quot;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;vpc-654321&quot;&lt;/span&gt;
