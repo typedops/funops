@@ -9,6 +9,13 @@ tags:
   - bottom
 ---
 
+This article provides a simple code-level case study to understand
+how two functional programming libraries have made different trade-offs. We
+explore related API-level design choices in a neutral language (Scala) where
+we consider the ability of the consumer of the API to reason equationally
+about it. We demonstrate that focusing on eliminating bottom yields
+more _reasonable_ (equationally) APIs.
+
 ## Background: (Mathematical) Bottom (⊥)
 
 Wikipedia states this as the definition:
@@ -29,6 +36,14 @@ In lay person's terms (my own words, not formal at all):
 > inflict the operating environment your program runs within with an unspoken
 > side effect.
 
+Real world bottom:
+
+* returning `null` (Java, Scala), `nil` (Ruby), `None` (Python), etc.
+* throwing/raising an exception
+* non-terminating functions (a function that will never normally return
+  unless it encounters an exception); this is needed for building long
+  running servers or operating systems.
+
 ### References
 
  * https://en.wikipedia.org/wiki/Bottom_type
@@ -41,30 +56,57 @@ lambda calculus. Any time your code or other dependencies return a
 _"bottom"_ value from a function you have violated the contract that allows
 you to reason mathematically about your code. In truly exceptional cases
 this is necessary to have an operationally well-behaved software in the real
-world. One example is a runtime error that unwinds the stack to denote an out
+world. Using exceptions for control flow is not _truly exceptional_.
+
+One _truly exceptional_ example might be a runtime exception to denote an out
 of memory system condition was met. In such a case, what can your application
-reasonably do to counter this problem? I would argue nothing, except maybe
-log it and exit if that is even possible (at least in the languages and
-environments I have experience in which isn't to say I know everything).
+reasonably do to counter this problem? I would argue nothing in most
+runtimes, except maybe log it and exit if that is even possible.
 
 Knowing how, when and what to reason about in your codebase is the key to
 applying the lambda calculus to your software in the real world. Even
 Haskellers have portions of their code they cannot equationally reason about
-to cater for their real world operational requirements. Knowing the
-vulnerabilities in your ability to reason about your code is key to knowing
-when and where you can apply equational reasoning.
+to cater for their real world operational needs. Knowing the vulnerabilities
+in the ability to reason about your code is key building more well reasoned
+software.
 
 Limiting the surface area where _bottom_ may arise in your code reduces the
-possibility of wide classes of runtime bugs.
-
-The rest of this article provides a simple code-level case study to understand
-how functional programming libraries have made a different trade-off with
-respect to the ability to reason logically about their standard library code.
+possibility of wide classes of runtime bugs albeit at _possible_ (not always)
+costs of more resource usage.
 
 ## Case Study: System Environment Variable Lookup
 
-Just doing something as simple as looking up an environment variable yields
+Doing something as simple as looking up an environment variable yields
 _bottom_ in OCaml but not in Haskell/GHC. Let's compare approaches.
+
+### OCaml 4.01.0
+
+The version of OCaml can likely vary from this version to yield the
+same results, but I have only tested with 4.01.0.
+
+```bash
+[git:master?+] spotter@redhorn ~/src/work/root
+$ ocaml
+        OCaml version 4.01.0
+
+# open Sys;;
+# getenv;;
+- : string -> string = <fun>
+```
+
+The OCaml type is simple (`string -> string`): given a `string` the function
+returns a `string`. Of course, it is side effecting as we will see below.
+The simplicity comes at a cost because we lost the ability to:
+
+* describe the program's logic separately from when it is
+  performed/evaluated. Once you call this function a side effect is imposed
+  on the operating environment. In this case we are just querying the system
+  environment which may not have negative impact, but in many other cases it
+  may, e.g. setting variable value in system environment.
+* denote by a specific return value that the environment variable is not set.
+  The way that OCaml caters for this case is by raising an exception that
+  unwinds the stack. i.e. producing a bottom value. This is not represented
+  to the caller in the type signature.
 
 ### Haskell/GHC 7.10.x+
 
@@ -81,15 +123,15 @@ Prelude System.Posix> :q
 Leaving GHCi.
 ```
 
-Type signature of getting the value of an environment variable in
-`System.Posix` is:
+The type signature of getting the value of an environment variable in
+`System.Posix` module is:
 
 ```hs
 String -> IO (Maybe String)
 ```
 
-In English this translates to: given a String we produce a program in the
-`IO` context where when performed will return a `Maybe String` value.
+In English this translates to: _given a String we produce a program in the
+`IO` context where when performed will return a `Maybe String` value._
 
 Notice here that the module `System.Posix` provides a function that does two
 things:
@@ -109,37 +151,28 @@ things:
   where `e` is a coproduct/sum type that describes the possible errors
   possible in the context of the function.
 
-### OCaml 4.01.0
-
-Again the version of OCaml can likely vary from this version to yield the
-same results, but I have only tested with 4.01.0.
-
-```bash
-[git:master?+] spotter@redhorn ~/src/work/root
-$ ocaml
-        OCaml version 4.01.0
-
-# open Sys;;
-# getenv;;
-- : string -> string = <fun>
-```
-
-The OCaml type is much simpler (`string -> string`) but at a cost because now
-we cannot do the following:
-
-* Cannot describe the program's logic separately from when it is
-  performed/evaluated. Once you call this function a side effect is imposed
-  on the operating environment. In this case we are just querying the system
-  environment which may not have negative impact, but in many other cases it
-  may, e.g. setting variable value in system environment.
-* The return value also doesn't denote that the variable key may not exist or
-  be set at all in the environment. The way that OCaml caters for this case
-  is by raising an exception that unwinds the stack. i.e. producing a bottom
-  value. This is not represented to the caller in the type signature.
-
 ## Usage
 
 Usage of the respective APIs.
+
+### OCaml
+
+Follow along in your `ocaml` REPL:
+
+```ocaml
+# getenv "HOME"
+  ;;
+- : string = "/home/spotter"
+# getenv "HOME2"
+  ;;
+Exception: Not_found.
+^D
+```
+
+Ouch! We do not have the ability to encapsulate the effects and decide _when_
+to perform them without the context in the return type (`IO a` in the
+Haskell/GHC case). We also don't receive a type expressing the optionality
+of the result which forces _bottom_ be returned.
 
 ### Haskell
 
@@ -158,6 +191,8 @@ to calling within the REPL without using `let`. Below we use the same API to
 get an `IO` action (aka _program_) which we can combine with other `IO`
 actions to produce a new and improved program in the `IO` context to later
 perform/execute it.
+
+Follow along in your own `ghci` REPL.
 
 ```hs
 Prelude> import System.Posix
@@ -182,49 +217,172 @@ Prelude System.Posix System.IO.Unsafe> unsafePerformIO a2
 (unset)
 ()
 it :: ()
+Prelude System.Posix> :quit
 ```
 
-### OCaml
 
-```ocaml
-# getenv "HOME"
-  ;;
-- : string = "/home/spotter"
-# getenv "HOME2"
-  ;;
-Exception: Not_found.
+## Trade-offs
+
+Let's look at each of these API choices in Scala (a neutral language):
+
+```tut:book
+/*
+ * Using Scalaz Effect v7.2.1:
+ *    "org.scalaz" %% "scalaz-effect" % "7.2.1"
+ */
+import scalaz._, Scalaz._
+import scalaz.effect._
+
+case class EnvError(message: String)
+
+object SysEnv0 {
+  /**
+    * This function is side effecting:
+    * We do not separate performance of the effects from
+    * building the program in the context nor does it denote
+    * an unset environment variable in any meaningful way (it
+    * returns a null value if unset) which is another form of
+    * bottom. This yields code littered with null checks diluting
+    * application codebase where business logic should be central
+    * focus.
+    */
+  def getEnv0(key: String): String =
+    sys.env.get(key).getOrElse(null)
+
+  /**
+    * This function is side effecting:
+    * We do not separate performance of the effects from
+    * building the program in the context nor do we represent
+    * optionality of the return type in any meaningful way, this
+    * definition uses empty string to denote an unset environment
+    * variable which is not a unique value but is not a bottom value
+    * case as in the first definition. However, we lose the ability
+    * to tell the case where the environment variable is not set
+    * apart from the case where the environment variable was set to
+    * a value of the empty string. This may not be interesting for
+    * your needs, so you get to decide.
+    */
+  def getEnv1(key: String): String =
+    sys.env.get(key).getOrElse("")
+
+  /**
+    * This function is side effecting:
+    * We still do not separate performance of the effects from
+    * building the program as a value and we denote the case of
+    * an environment variable name not set with a runtime exception
+    * which is another form of bottom value returned.
+    */
+  def getEnv2(key: String): String =
+    sys.env.get(key).getOrElse(throw new RuntimeException(s"Key ${key} not found"))
+
+  /**
+    * This function is side effecting:
+    * We are not yet separating program as a value that can be
+    * combined with other programs in the same context using
+    * simple and common combinators, but in this type signature
+    * we explicitly denote the optionality of the returned value
+    * for the case where the environment variable is not set.
+    */
+  def getEnv3(key: String): Option[String] =
+    sys.env.get(key)
+
+  /**
+    * This function is effectful:
+    * We are building a program as a value in the IO context. We also
+    * denote the optionality of the underlying program's return type
+    * with Option[String]. These are all good things from the perspective
+    * of equationally reasoning about your code.
+    */
+  def getEnv4(key: String): IO[Option[String]] =
+    IO { sys.env.get(key) }
+
+  /**
+    * This function is effectful:
+    * We are building a program as a value in the IO context to be
+    * performed at a later time once it is combined with other IO
+    * programs (or values representing programs that can be translated
+    * to the IO context). We also provide more context in the specific
+    * error case where the environment variable is not set with a message
+    * that shows a message containing the key name. This could be made more
+    * explicit if we passed the value constructor for the EnvError two
+    * arguments where one is the name of the environment variable and the
+    * other is the message.
+    */
+  def getEnv5(key: String): IO[EnvError \/ String] =
+    IO { sys.env.get(key) \/> EnvError(s"Couldn't find key ${key}.") }
+}
 ```
 
-Ouch! We have lost the ability to encapsulate the effects and decide _when_
-to perform them without the effect context in the return type (`IO` in the
-Haskell/GHC case). We also don't receive a type expressing the optionality
-of the result which forces _bottom_ be returned.
+By wrapping your return values inside effects/contexts you do require more
+from the consumer of your API to get at the "happy path" result, but you
+provide much more control and/or context for the consumer of your API with
+additional type safety that can help in refactoring your code base. In the
+non-happy path cases the extra control and context is a positive since
+you would need to wrap exception handling code around the call site for
+each API use.
 
-## Tradeoffs
+Depending on your programming environment and requirements you may need to
+weigh the memory and CPU cycle costs of this extra wrapping. Make sure you
+measure whether this impacts your system negatively before prematurely
+optimizing and relatively prioritize the importance of higher-level
+abstraction and control over specific performance characteristics based
+on application need.
 
-There are some implementations of the equivalent `getenv` functionality
-in other functional languages that return an empty `string` as an
-alternative to an exception. In this case the consumer of the API loses the
-ability to tell between the case of an environment variable set to the empty
-string and an unset environment variable. This may be perfectly acceptable
-for your needs. As the API designer you get to decide where to draw the line.
+There is a dirty little secret: you don't have to stop at `IO`. In fact,
+it is typically preferrable to wrap/layer into more specific contexts with
+limited operations/constructors and then translate to the `IO` context at the
+end before performing/executing the `IO` program. You can find out more by
+reviewing literature (and possibly future posts on this blog) on free monads
+or extensible effects with the effect monad (sometimes referred to as `Eff`).
 
-By wrapping your return values inside contexts you do require more from
-the consumer to get at the "happy path" result, but you provide much more
-control and/or context for the consumer of your API with additional type
-safety that can help in refactoring your code base. Depending on your
-programming environment and requirements you may need to weigh the memory and
-CPU cycle costs of this extra wrapping. Make sure you measure whether this
-impacts your system negatively before prematurely optimizing though.
+The moral of the story is you must remember the ability to reason about the
+APIs you design are influenced by how much you make an effort to eliminate
+bottom.
 
-The moral of the story is you must remember the limits of your ability to
-reason about the code with the different API design choices available to you.
+As the API designer you get to decide where to draw the line. It is
+prudent to consider the usability of your API as a consumer. If
+your library/code does not need to be highly tuned you can always provide a
+simpler API on top of better defined (from an equational reasoning
+perspective) functions to fit more consumer needs. Let's look below to
+see what this could look like:
+
+```tut:book
+object SysEnv1 {
+  def getEnv0(key: String): String =
+    try {
+      getEnv2(key)
+    } catch {
+      case re: RuntimeException => null // this is crazy, don't do this.
+    }
+
+  def getEnv1(key: String): String =
+    getEnv0(key) match {
+      case null => ""
+      case x    => x
+    }
+
+  def getEnv2(key: String): String =
+    getEnv3(key) match {
+      case Some(x) => x
+      case None => throw new RuntimeException(s"Key ${key} not found.")
+    }
+
+  def getEnv3(key: String): Option[String] =
+    getEnv4(key).unsafePerformIO
+
+  def getEnv4(key: String): IO[Option[String]] =
+    getEnv5(key).map(_.toOption)
+
+  def getEnv5(key: String): IO[EnvError \/ String] =
+    IO { sys.env.get(key) \/> EnvError(s"Couldn't find key ${key}.") }
+}
+```
 
 Cheers and happy reasoning.
 
 ### Thank you!
 
-I would like to thank the follow non-functional programmers for reviewing
+I would like to thank the following non-functional programmers for reviewing
 a rough draft of this post for flow and cohesiveness:
 
 * [@randomfrequency](https://twitter.com/randomfrequency)
