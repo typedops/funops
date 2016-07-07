@@ -73,8 +73,8 @@ to extend the syntax:</p>
 <pre><code class="language-idris">syntax [ma] "?" [a] = fromMaybe a ma
 </code></pre>
 
-<p>where <code class="highlighter-rouge">fromMaybe</code> is from the <code class="highlighter-rouge">Prelude.Maybe</code> module which has the type
-signature: <code class="highlighter-rouge">fromMaybe : Lazy a -&gt; Maybe a -&gt; a</code> so now I can do:</p>
+<p>where <code>fromMaybe</code> is from the <code>Prelude.Maybe</code> module which has the type
+signature: <code>fromMaybe : Lazy a -&gt; Maybe a -&gt; a</code> so now I can do:</p>
 
 <pre><code class="language-idris">idris&gt; (Just 88) ? 77
 88 : Integer
@@ -89,128 +89,120 @@ idris&gt; Nothing ? 77
 
 <h2 id="setup">Setup</h2>
 
-<p>We will start out defining the sum type <code class="highlighter-rouge">Maybe</code> with data constructors <code class="highlighter-rouge">Nowt</code>
-(same as <code class="highlighter-rouge">Nothing</code> in Idris) and <code class="highlighter-rouge">Just</code> which wraps an underlying <code class="highlighter-rouge">A</code> value.</p>
+<p>We will start out defining the sum type <code>Maybe</code> with data constructors <code>Nowt</code>
+(same as <code>Nothing</code> in Idris) and <code>Just</code> which wraps an underlying <code>A</code> value.</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">sealed</span> <span class="k">abstract</span> <span class="k">class</span> <span class="nc">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
-<span class="nc">defined</span> <span class="k">class</span> <span class="nc">Maybe</span>
+<pre><code class="language-scala">scala&gt; sealed abstract class Maybe[A]
+defined class Maybe
 
-<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Just</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
-<span class="n">defined</span> <span class="k">class</span> <span class="nc">Just</span>
+scala&gt; case class Just[A](a: A) extends Maybe[A]
+defined class Just
 
-<span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Nowt</span><span class="o">[</span><span class="kt">A</span><span class="o">]()</span> <span class="k">extends</span> <span class="nc">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
-<span class="n">defined</span> <span class="k">class</span> <span class="nc">Nowt</span>
+scala&gt; case class Nowt[A]() extends Maybe[A]
+defined class Nowt
 </code></pre>
-</div>
 
-<p>Now we just have to define the <code class="highlighter-rouge">fromMaybe[A]</code> decorator. We can do this in the
+<p>Now we just have to define the <code>fromMaybe[A]</code> decorator. We can do this in the
 companion object:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">object</span> <span class="nc">Maybe</span> <span class="o">{</span>
-     <span class="o">|</span>   <span class="k">def</span> <span class="n">fromMaybe</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)(</span><span class="n">ma</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">])</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=</span> <span class="n">ma</span> <span class="k">match</span> <span class="o">{</span>
-     <span class="o">|</span>     <span class="k">case</span> <span class="nc">Just</span><span class="o">(</span><span class="n">x</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">x</span>
-     <span class="o">|</span>     <span class="k">case</span> <span class="nc">Nowt</span><span class="o">()</span> <span class="k">=&gt;</span> <span class="n">a</span>
-     <span class="o">|</span>   <span class="o">}</span>
-     <span class="o">|</span> <span class="o">}</span>
-<span class="n">defined</span> <span class="k">object</span> <span class="nc">Maybe</span>
-<span class="n">warning</span><span class="k">:</span> <span class="kt">previously</span> <span class="kt">defined</span> <span class="kt">class</span> <span class="kt">Maybe</span> <span class="kt">is</span> <span class="kt">not</span> <span class="kt">a</span> <span class="kt">companion</span> <span class="kt">to</span> <span class="kt">object</span> <span class="kt">Maybe.</span>
-<span class="kt">Companions</span> <span class="kt">must</span> <span class="kt">be</span> <span class="kt">defined</span> <span class="kt">together</span><span class="o">;</span> <span class="n">you</span> <span class="n">may</span> <span class="n">wish</span> <span class="n">to</span> <span class="n">use</span> <span class="k">:</span><span class="kt">paste</span> <span class="kt">mode</span> <span class="kt">for</span> <span class="kt">this.</span>
+<pre><code class="language-scala">scala&gt; object Maybe {
+     |   def fromMaybe[A](a: A)(ma: Maybe[A]): A = ma match {
+     |     case Just(x) =&gt; x
+     |     case Nowt() =&gt; a
+     |   }
+     | }
+defined object Maybe
+warning: previously defined class Maybe is not a companion to object Maybe.
+Companions must be defined together; you may wish to use :paste mode for this.
 </code></pre>
-</div>
 
 <p>Now we have what was already provided by Idris in the Prelude, therefore so
 far, we have been setting up our Scala code to mimick what we had in Idris.
-(Note: we could have also used <code class="highlighter-rouge">Option[A]</code> and related <code class="highlighter-rouge">getOrElse</code> method
+(Note: we could have also used <code>Option[A]</code> and related <code>getOrElse</code> method
 instead of the above).</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">object</span> <span class="nc">Maybe</span> <span class="o">{</span> <span class="n">self</span> <span class="k">=&gt;</span> <span class="cm">/* Note: newly added reference to outer object */</span>
-     <span class="o">|</span>   <span class="k">def</span> <span class="n">fromMaybe</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)(</span><span class="n">ma</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">])</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=</span> <span class="n">ma</span> <span class="k">match</span> <span class="o">{</span>
-     <span class="o">|</span>     <span class="k">case</span> <span class="nc">Just</span><span class="o">(</span><span class="n">x</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">x</span>
-     <span class="o">|</span>     <span class="k">case</span> <span class="nc">Nowt</span><span class="o">()</span> <span class="k">=&gt;</span> <span class="n">a</span>
-     <span class="o">|</span>   <span class="o">}</span>
-     <span class="o">|</span> 
-     <span class="o">|</span>   <span class="cm">/* Helpers for value construction */</span>
-     <span class="o">|</span>   <span class="k">def</span> <span class="n">apply</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=</span> <span class="k">if</span> <span class="o">(</span><span class="n">a</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="nc">Nowt</span><span class="o">()</span> <span class="k">else</span> <span class="nc">Just</span><span class="o">(</span><span class="n">a</span><span class="o">)</span>
-     <span class="o">|</span>   <span class="k">def</span> <span class="n">nowt</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Nowt</span><span class="o">()</span>
-     <span class="o">|</span>   <span class="k">def</span> <span class="n">just</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span> <span class="k">=</span> <span class="nc">Maybe</span><span class="o">(</span><span class="n">a</span><span class="o">)</span>
-     <span class="o">|</span> 
-     <span class="o">|</span>   <span class="cm">/* Newly added code */</span>
-     <span class="o">|</span>   <span class="k">implicit</span> <span class="k">class</span> <span class="nc">MaybeOps</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="k">val</span> <span class="n">ma</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">])</span> <span class="k">extends</span> <span class="nc">AnyVal</span> <span class="o">{</span>
-     <span class="o">|</span>     <span class="k">def</span> <span class="o">?(</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=</span> <span class="n">self</span><span class="o">.</span><span class="n">fromMaybe</span><span class="o">(</span><span class="n">a</span><span class="o">)(</span><span class="n">ma</span><span class="o">)</span>
-     <span class="o">|</span>   <span class="o">}</span>
-     <span class="o">|</span> <span class="o">}</span>
-<span class="n">defined</span> <span class="k">object</span> <span class="nc">Maybe</span>
-<span class="n">warning</span><span class="k">:</span> <span class="kt">previously</span> <span class="kt">defined</span> <span class="kt">class</span> <span class="kt">Maybe</span> <span class="kt">is</span> <span class="kt">not</span> <span class="kt">a</span> <span class="kt">companion</span> <span class="kt">to</span> <span class="kt">object</span> <span class="kt">Maybe.</span>
-<span class="kt">Companions</span> <span class="kt">must</span> <span class="kt">be</span> <span class="kt">defined</span> <span class="kt">together</span><span class="o">;</span> <span class="n">you</span> <span class="n">may</span> <span class="n">wish</span> <span class="n">to</span> <span class="n">use</span> <span class="k">:</span><span class="kt">paste</span> <span class="kt">mode</span> <span class="kt">for</span> <span class="kt">this.</span>
+<pre><code class="language-scala">scala&gt; object Maybe { self =&gt; /* Note: newly added reference to outer object */
+     |   def fromMaybe[A](a: A)(ma: Maybe[A]): A = ma match {
+     |     case Just(x) =&gt; x
+     |     case Nowt() =&gt; a
+     |   }
+     | 
+     |   /* Helpers for value construction */
+     |   def apply[A](a: A): Maybe[A] = if (a == null) Nowt() else Just(a)
+     |   def nowt[A]: Maybe[A] = Nowt()
+     |   def just[A](a: A) = Maybe(a)
+     | 
+     |   /* Newly added code */
+     |   implicit class MaybeOps[A](val ma: Maybe[A]) extends AnyVal {
+     |     def ?(a: A): A = self.fromMaybe(a)(ma)
+     |   }
+     | }
+defined object Maybe
+warning: previously defined class Maybe is not a companion to object Maybe.
+Companions must be defined together; you may wish to use :paste mode for this.
 </code></pre>
-</div>
 
-<p>Now we can test that we can use the new syntax (<code class="highlighter-rouge">?</code> operator) the way we want:</p>
+<p>Now we can test that we can use the new syntax (<code>?</code> operator) the way we want:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">object</span> <span class="nc">Main</span> <span class="k">extends</span> <span class="nc">App</span> <span class="o">{</span>
-     <span class="o">|</span>   <span class="k">import</span> <span class="nn">Maybe._</span>
-     <span class="o">|</span> 
-     <span class="o">|</span>   <span class="k">val</span> <span class="n">mint1</span> <span class="k">=</span> <span class="n">just</span><span class="o">(</span><span class="mi">30</span><span class="o">)</span>
-     <span class="o">|</span>   <span class="k">val</span> <span class="n">mint2</span> <span class="k">=</span> <span class="n">nowt</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span>
-     <span class="o">|</span> 
-     <span class="o">|</span>   <span class="n">println</span><span class="o">(</span><span class="n">mint1</span> <span class="o">?</span> <span class="mi">60</span><span class="o">)</span>
-     <span class="o">|</span>   <span class="n">println</span><span class="o">(</span><span class="n">mint2</span> <span class="o">?</span> <span class="mi">60</span><span class="o">)</span>
-     <span class="o">|</span> <span class="o">}</span>
-<span class="n">defined</span> <span class="k">object</span> <span class="nc">Main</span>
+<pre><code class="language-scala">scala&gt; object Main extends App {
+     |   import Maybe._
+     | 
+     |   val mint1 = just(30)
+     |   val mint2 = nowt[Int]
+     | 
+     |   println(mint1 ? 60)
+     |   println(mint2 ? 60)
+     | }
+defined object Main
 
-<span class="n">scala</span><span class="o">&gt;</span> <span class="nc">Main</span><span class="o">.</span><span class="n">main</span><span class="o">(</span><span class="nc">Array</span><span class="o">.</span><span class="n">empty</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span>
-<span class="mi">30</span>
-<span class="mi">60</span>
+scala&gt; Main.main(Array.empty[String])
+30
+60
 </code></pre>
-</div>
 
-<p>We added decoration method <code class="highlighter-rouge">?</code> to <code class="highlighter-rouge">Maybe[A]</code> values by importing the companion
-object implicit value class <code class="highlighter-rouge">MaybeOps[A]</code> definition into scope.</p>
+<p>We added decoration method <code>?</code> to <code>Maybe[A]</code> values by importing the companion
+object implicit value class <code>MaybeOps[A]</code> definition into scope.</p>
 
 <p>To recap we only need to add the following code to <em>provide</em> the syntax
 within the companion object:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>  <span class="k">implicit</span> <span class="k">class</span> <span class="nc">MaybeOps</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="k">val</span> <span class="n">ma</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">])</span> <span class="k">extends</span> <span class="nc">AnyVal</span> <span class="o">{</span>
-    <span class="k">def</span> <span class="o">?(</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=</span> <span class="n">self</span><span class="o">.</span><span class="n">fromMaybe</span><span class="o">(</span><span class="n">a</span><span class="o">)(</span><span class="n">ma</span><span class="o">)</span>
-  <span class="o">}</span>
+<pre><code class="language-scala">  implicit class MaybeOps[A](val ma: Maybe[A]) extends AnyVal {
+    def ?(a: A): A = self.fromMaybe(a)(ma)
+  }
 </code></pre>
-</div>
 
 <p>On the consuming side we just need to import the top-level companion object
 content into scope like so:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>  <span class="k">import</span> <span class="nn">Maybe._</span>
+<pre><code class="language-scala">  import Maybe._
 </code></pre>
-</div>
 
 <p>For bonus points, we added a couple of smart value constructors in the
 companion object:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span>   <span class="k">def</span> <span class="n">apply</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=</span> <span class="k">if</span> <span class="o">(</span><span class="n">a</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="nc">Nowt</span><span class="o">()</span> <span class="k">else</span> <span class="nc">Just</span><span class="o">(</span><span class="n">a</span><span class="o">)</span>
-<span class="n">apply</span><span class="k">:</span> <span class="err">[</span><span class="kt">A</span><span class="err">]</span><span class="o">(</span><span class="kt">a:</span> <span class="kt">A</span><span class="o">)</span><span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+<pre><code class="language-scala">scala&gt;   def apply[A](a: A): Maybe[A] = if (a == null) Nowt() else Just(a)
+apply: [A](a: A)Maybe[A]
 
-<span class="n">scala</span><span class="o">&gt;</span>   <span class="k">def</span> <span class="n">nowt</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span><span class="k">:</span> <span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Nowt</span><span class="o">()</span>
-<span class="n">nowt</span><span class="k">:</span> <span class="err">[</span><span class="kt">A</span><span class="err">]</span><span class="o">=&gt;</span> <span class="nc">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+scala&gt;   def nowt[A]: Maybe[A] = Nowt()
+nowt: [A]=&gt; Maybe[A]
 
-<span class="n">scala</span><span class="o">&gt;</span>   <span class="k">def</span> <span class="n">just</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span> <span class="k">=</span> <span class="nc">Maybe</span><span class="o">(</span><span class="n">a</span><span class="o">)</span>
-<span class="n">just</span><span class="k">:</span> <span class="err">[</span><span class="kt">A</span><span class="err">]</span><span class="o">(</span><span class="kt">a:</span> <span class="kt">A</span><span class="o">)</span><span class="kt">Maybe</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+scala&gt;   def just[A](a: A) = Maybe(a)
+just: [A](a: A)Maybe[A]
 </code></pre>
-</div>
 
-<p>This makes consuming code for constructing <code class="highlighter-rouge">Maybe[A]</code> values simpler
-with appropriate type inference (i.e. we want <code class="highlighter-rouge">Maybe[A]</code> to always
-be inferred not <code class="highlighter-rouge">Just[A]</code> or <code class="highlighter-rouge">Nowt[A]</code>).</p>
+<p>This makes consuming code for constructing <code>Maybe[A]</code> values simpler
+with appropriate type inference (i.e. we want <code>Maybe[A]</code> to always
+be inferred not <code>Just[A]</code> or <code>Nowt[A]</code>).</p>
 
 <p>If we had not added these value constructors or not used them we
 would have this problem on our hands:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span>   <span class="k">val</span> <span class="n">mint1</span> <span class="k">=</span> <span class="nc">Just</span><span class="o">(</span><span class="mi">30</span><span class="o">)</span>
-<span class="n">mint1</span><span class="k">:</span> <span class="kt">Just</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Just</span><span class="o">(</span><span class="mi">30</span><span class="o">)</span>
+<pre><code class="language-scala">scala&gt;   val mint1 = Just(30)
+mint1: Just[Int] = Just(30)
 
-<span class="n">scala</span><span class="o">&gt;</span>   <span class="k">val</span> <span class="n">mint2</span> <span class="k">=</span> <span class="nc">Nowt</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span>
-<span class="n">mint2</span><span class="k">:</span> <span class="kt">Nowt</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Nowt</span><span class="o">()</span>
+scala&gt;   val mint2 = Nowt[Int]
+mint2: Nowt[Int] = Nowt()
 </code></pre>
-</div>
 
 <p>Look at the types inferred by Scala. In some scenarios, this might
 give you problems.</p>

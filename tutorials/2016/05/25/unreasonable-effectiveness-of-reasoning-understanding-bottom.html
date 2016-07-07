@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width initial-scale=1">
 
   <title>The Unreasonable Effectiveness of Reasoning: Eliminating Bottom</title>
-  <meta name="description" content="This article provides a simple code-level case study to understandhow functional programming libraries have made different trade-offs andexplore related API-...">
+  <meta name="description" content="This article provides a simple code-level case study to understandhow two functional programming libraries have made different trade-offs. Weexplore related ...">
 
   <link rel="stylesheet" href="/public/css/main.css">
   <link rel="canonical" href="http://typedops.github.io/tutorials/2016/05/25/unreasonable-effectiveness-of-reasoning-understanding-bottom.html">
@@ -68,10 +68,11 @@
   <h2>The Unreasonable Effectiveness of Reasoning: Eliminating Bottom</h2>
 
   <p>This article provides a simple code-level case study to understand
-how functional programming libraries have made different trade-offs and
-explore related API-level design choices in a neutral language where we
-consider the ability of the consumer of the API to reason equationally about
-the API (read: types) you offer.</p>
+how two functional programming libraries have made different trade-offs. We
+explore related API-level design choices in a neutral language (Scala) where
+we consider the ability of the consumer of the API to reason equationally
+about it. We demonstrate that focusing on eliminating bottom yields
+more <em>reasonable</em> (equationally) APIs.</p>
 
 <h2 id="background-mathematical-bottom-">Background: (Mathematical) Bottom (⊥)</h2>
 
@@ -100,7 +101,7 @@ side effect.</p>
 <p>Real world bottom:</p>
 
 <ul>
-  <li>returning <code class="highlighter-rouge">null</code> (Java, Scala), <code class="highlighter-rouge">nil</code> (Ruby), <code class="highlighter-rouge">None</code> (Python), etc.</li>
+  <li>returning <code>null</code> (Java, Scala), <code>nil</code> (Ruby), <code>None</code> (Python), etc.</li>
   <li>throwing/raising an exception</li>
   <li>non-terminating functions (a function that will never normally return
 unless it encounters an exception); this is needed for building long
@@ -121,7 +122,9 @@ lambda calculus. Any time your code or other dependencies return a
 <em>“bottom”</em> value from a function you have violated the contract that allows
 you to reason mathematically about your code. In truly exceptional cases
 this is necessary to have an operationally well-behaved software in the real
-world. One example is a runtime error that unwinds the stack to denote an out
+world. Using exceptions for control flow is not <em>truly exceptional</em>.</p>
+
+<p>One <em>truly exceptional</em> example might be a runtime exception to denote an out
 of memory system condition was met. In such a case, what can your application
 reasonably do to counter this problem? I would argue nothing in most
 runtimes, except maybe log it and exit if that is even possible.</p>
@@ -134,12 +137,12 @@ in the ability to reason about your code is key building more well reasoned
 software.</p>
 
 <p>Limiting the surface area where <em>bottom</em> may arise in your code reduces the
-possibility of wide classes of runtime bugs albeit at possible costs of
-more resource usage.</p>
+possibility of wide classes of runtime bugs albeit at <em>possible</em> (not always)
+costs of more resource usage.</p>
 
 <h2 id="case-study-system-environment-variable-lookup">Case Study: System Environment Variable Lookup</h2>
 
-<p>Just doing something as simple as looking up an environment variable yields
+<p>Doing something as simple as looking up an environment variable yields
 <em>bottom</em> in OCaml but not in Haskell/GHC. Let’s compare approaches.</p>
 
 <h3 id="ocaml-4010">OCaml 4.01.0</h3>
@@ -147,18 +150,18 @@ more resource usage.</p>
 <p>The version of OCaml can likely vary from this version to yield the
 same results, but I have only tested with 4.01.0.</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="o">[</span>git:master?+] spotter@redhorn ~/src/work/root
-<span class="gp">$ </span>ocaml
+<pre><code class="language-bash">[git:master?+] spotter@redhorn ~/src/work/root
+$ ocaml
         OCaml version 4.01.0
 
-<span class="c"># open Sys;;</span>
-<span class="c"># getenv;;</span>
-- : string -&gt; string <span class="o">=</span> &lt;fun&gt;
+# open Sys;;
+# getenv;;
+- : string -&gt; string = &lt;fun&gt;
 </code></pre>
-</div>
 
-<p>The OCaml type is simple (<code class="highlighter-rouge">string -&gt; string</code>). This simplicity comes at a
-cost because we cannot:</p>
+<p>The OCaml type is simple (<code>string -&gt; string</code>): given a <code>string</code> the function
+returns a <code>string</code>. Of course, it is side effecting as we will see below.
+The simplicity comes at a cost because we lost the ability to:</p>
 
 <ul>
   <li>describe the program’s logic separately from when it is
@@ -177,43 +180,41 @@ to the caller in the type signature.</li>
 <p>This code will likely work in many prior versions of GHC but I have only
 tested on 7.10.3.</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="gp">$ </span>ghci
-GHCi, version 7.10.3: http://www.haskell.org/ghc/  :? <span class="k">for </span><span class="nb">help
-</span><span class="gp">Prelude&gt; </span>import System.Posix
+<pre><code class="language-bash">$ ghci
+GHCi, version 7.10.3: http://www.haskell.org/ghc/  :? for help
+Prelude&gt; import System.Posix
 Prelude System.Posix&gt; :t getEnv
-getEnv :: String -&gt; IO <span class="o">(</span>Maybe String<span class="o">)</span>
+getEnv :: String -&gt; IO (Maybe String)
 Prelude System.Posix&gt; :q
 Leaving GHCi.
 </code></pre>
-</div>
 
 <p>The type signature of getting the value of an environment variable in
-<code class="highlighter-rouge">System.Posix</code> module is:</p>
+<code>System.Posix</code> module is:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="kt">String</span> <span class="o">-&gt;</span> <span class="kt">IO</span> <span class="p">(</span><span class="kt">Maybe</span> <span class="kt">String</span><span class="p">)</span>
+<pre><code class="language-hs">String -&gt; IO (Maybe String)
 </code></pre>
-</div>
 
 <p>In English this translates to: <em>given a String we produce a program in the
-<code class="highlighter-rouge">IO</code> context where when performed will return a <code class="highlighter-rouge">Maybe String</code> value.</em></p>
+<code>IO</code> context where when performed will return a <code>Maybe String</code> value.</em></p>
 
-<p>Notice here that the module <code class="highlighter-rouge">System.Posix</code> provides a function that does two
+<p>Notice here that the module <code>System.Posix</code> provides a function that does two
 things:</p>
 
 <ul>
   <li>wraps the result into an IO context so that the intended program can be
-represented as an <code class="highlighter-rouge">IO</code> value to separate it from the performance/execution
+represented as an <code>IO</code> value to separate it from the performance/execution
 of the program (a core tenet of referential transparency or ‘purity’).</li>
   <li>ensures that the inner value describes the context that no environment
 variable setting is a valid value in the domain of environment variables.
 i.e. what we are saying is that in a system environment if a key is not
 present, we return a value that signifies that back to the caller as an
 explicit value. In the world of environment variable retrieving we probably
-don’t care about returning an error value that describes why a <code class="highlighter-rouge">String</code>
+don’t care about returning an error value that describes why a <code>String</code>
 value wasn’t returned as there are so few reasons it would likely not be
 interesting to the caller of the function. However, in some domains we
-would provide a function with the type: <code class="highlighter-rouge">String -&gt; IO (Either e String)</code>
-where <code class="highlighter-rouge">e</code> is a coproduct/sum type that describes the possible errors
+would provide a function with the type: <code>String -&gt; IO (Either e String)</code>
+where <code>e</code> is a coproduct/sum type that describes the possible errors
 possible in the context of the function.</li>
 </ul>
 
@@ -223,89 +224,86 @@ possible in the context of the function.</li>
 
 <h3 id="ocaml">OCaml</h3>
 
-<p>Follow along in your <code class="highlighter-rouge">ocaml</code> REPL:</p>
+<p>Follow along in your <code>ocaml</code> REPL:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="p">#</span> <span class="n">getenv</span> <span class="s2">"HOME"</span>
-  <span class="p">;;</span>
-<span class="p">-</span> <span class="p">:</span> <span class="kt">string</span> <span class="p">=</span> <span class="s2">"/home/spotter"</span>
-<span class="p">#</span> <span class="n">getenv</span> <span class="s2">"HOME2"</span>
-  <span class="p">;;</span>
-<span class="nc">Exception</span><span class="p">:</span> <span class="nn">Not_found</span><span class="p">.</span>
-<span class="err">^</span><span class="nc">D</span>
+<pre><code class="language-ocaml"># getenv "HOME"
+  ;;
+- : string = "/home/spotter"
+# getenv "HOME2"
+  ;;
+Exception: Not_found.
+^D
 </code></pre>
-</div>
 
 <p>Ouch! We do not have the ability to encapsulate the effects and decide <em>when</em>
-to perform them without the context in the return type (<code class="highlighter-rouge">IO a</code> in the
+to perform them without the context in the return type (<code>IO a</code> in the
 Haskell/GHC case). We also don’t receive a type expressing the optionality
 of the result which forces <em>bottom</em> be returned.</p>
 
 <h3 id="haskell">Haskell</h3>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>Prelude System.Posix&gt; getEnv <span class="s2">"HOME"</span>
-Just <span class="s2">"/home/spotter"</span>
+<pre><code class="language-bash">Prelude System.Posix&gt; getEnv "HOME"
+Just "/home/spotter"
 it :: Maybe String
-Prelude System.Posix&gt; getEnv <span class="s2">"HOME2"</span>
+Prelude System.Posix&gt; getEnv "HOME2"
 Nothing
 it :: Maybe String
 </code></pre>
-</div>
 
 <p>Because we are in the GHCi (REPL/interactive shell) we are essentially
-performing the <code class="highlighter-rouge">IO</code> action at the same time we call it, but that is only due
-to calling within the REPL without using <code class="highlighter-rouge">let</code>. Below we use the same API to
-get an <code class="highlighter-rouge">IO</code> action (aka <em>program</em>) which we can combine with other <code class="highlighter-rouge">IO</code>
-actions to produce a new and improved program in the <code class="highlighter-rouge">IO</code> context to later
+performing the <code>IO</code> action at the same time we call it, but that is only due
+to calling within the REPL without using <code>let</code>. Below we use the same API to
+get an <code>IO</code> action (aka <em>program</em>) which we can combine with other <code>IO</code>
+actions to produce a new and improved program in the <code>IO</code> context to later
 perform/execute it.</p>
 
-<p>Follow along in your own <code class="highlighter-rouge">ghci</code> REPL.</p>
+<p>Follow along in your own <code>ghci</code> REPL.</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="kt">Prelude</span><span class="o">&gt;</span> <span class="kr">import</span> <span class="nn">System.Posix</span>
-<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">&gt;</span> <span class="kr">let</span> <span class="n">a0</span> <span class="o">=</span> <span class="n">getE</span>
-<span class="n">getEffectiveGroupID</span>   <span class="n">getEffectiveUserName</span>  <span class="n">getEnvDefault</span>         <span class="n">getEnvironmentPrim</span>
-<span class="n">getEffectiveUserID</span>    <span class="n">getEnv</span>                <span class="n">getEnvironment</span>
-<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">&gt;</span> <span class="kr">let</span> <span class="n">a0</span> <span class="o">=</span> <span class="n">getEnv</span> <span class="s">"HOME"</span>
-<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">|</span>
-<span class="n">a0</span> <span class="o">::</span> <span class="kt">IO</span> <span class="p">(</span><span class="kt">Maybe</span> <span class="kt">String</span><span class="p">)</span>
-<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">&gt;</span> <span class="o">:</span><span class="n">t</span> <span class="n">a0</span>
-<span class="n">a0</span> <span class="o">::</span> <span class="kt">IO</span> <span class="p">(</span><span class="kt">Maybe</span> <span class="kt">String</span><span class="p">)</span>
-<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">&gt;</span> <span class="kr">let</span> <span class="n">a1</span> <span class="o">=</span> <span class="n">getEnv</span> <span class="s">"HOME2"</span>
-<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">|</span>
-<span class="n">a1</span> <span class="o">::</span> <span class="kt">IO</span> <span class="p">(</span><span class="kt">Maybe</span> <span class="kt">String</span><span class="p">)</span>
-<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">&gt;</span> <span class="o">:</span><span class="n">t</span> <span class="n">a1</span>
-<span class="n">a1</span> <span class="o">::</span> <span class="kt">IO</span> <span class="p">(</span><span class="kt">Maybe</span> <span class="kt">String</span><span class="p">)</span>
-<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span> <span class="kt">System</span><span class="o">.</span><span class="kt">IO</span><span class="o">.</span><span class="kt">Unsafe</span><span class="o">&gt;</span> <span class="kr">let</span> <span class="n">a2</span> <span class="o">=</span> <span class="n">a0</span> <span class="o">&gt;&gt;=</span> <span class="n">putStrLn</span> <span class="o">.</span> <span class="n">printMaybeS</span> <span class="o">&gt;&gt;=</span> <span class="n">const</span> <span class="n">a1</span> <span class="o">&gt;&gt;=</span>
-<span class="n">putStrLn</span> <span class="o">.</span> <span class="n">printMaybeS</span>
-<span class="n">a2</span> <span class="o">::</span> <span class="kt">IO</span> <span class="nb">()</span>
-<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span> <span class="kt">System</span><span class="o">.</span><span class="kt">IO</span><span class="o">.</span><span class="kt">Unsafe</span><span class="o">&gt;</span> <span class="n">unsafePerformIO</span> <span class="n">a2</span>
-<span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">spotter</span>
-<span class="p">(</span><span class="n">unset</span><span class="p">)</span>
-<span class="nb">()</span>
-<span class="n">it</span> <span class="o">::</span> <span class="nb">()</span>
-<span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">&gt;</span> <span class="o">:</span><span class="n">quit</span>
+<pre><code class="language-hs">Prelude&gt; import System.Posix
+Prelude System.Posix&gt; let a0 = getE
+getEffectiveGroupID   getEffectiveUserName  getEnvDefault         getEnvironmentPrim
+getEffectiveUserID    getEnv                getEnvironment
+Prelude System.Posix&gt; let a0 = getEnv "HOME"
+Prelude System.Posix|
+a0 :: IO (Maybe String)
+Prelude System.Posix&gt; :t a0
+a0 :: IO (Maybe String)
+Prelude System.Posix&gt; let a1 = getEnv "HOME2"
+Prelude System.Posix|
+a1 :: IO (Maybe String)
+Prelude System.Posix&gt; :t a1
+a1 :: IO (Maybe String)
+Prelude System.Posix System.IO.Unsafe&gt; let a2 = a0 &gt;&gt;= putStrLn . printMaybeS &gt;&gt;= const a1 &gt;&gt;=
+putStrLn . printMaybeS
+a2 :: IO ()
+Prelude System.Posix System.IO.Unsafe&gt; unsafePerformIO a2
+/home/spotter
+(unset)
+()
+it :: ()
+Prelude System.Posix&gt; :quit
 </code></pre>
-</div>
 
 <h2 id="trade-offs">Trade-offs</h2>
 
 <p>Let’s look at each of these API choices in Scala (a neutral language):</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="cm">/*
+<pre><code class="language-scala">/*
  * Using Scalaz Effect v7.2.1:
  *    "org.scalaz" %% "scalaz-effect" % "7.2.1"
- */</span>
-<span class="k">import</span> <span class="nn">scalaz._</span><span class="o">,</span> <span class="nc">Scalaz</span><span class="o">.</span><span class="k">_</span>
-<span class="c1">// import scalaz._
+ */
+import scalaz._, Scalaz._
+// import scalaz._
 // import Scalaz._
-</span>
-<span class="k">import</span> <span class="nn">scalaz.effect._</span>
-<span class="c1">// import scalaz.effect._
-</span>
-<span class="k">case</span> <span class="k">class</span> <span class="nc">EnvError</span><span class="o">(</span><span class="n">message</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span>
-<span class="c1">// defined class EnvError
-</span>
-<span class="k">object</span> <span class="nc">SysEnv0</span> <span class="o">{</span>
-  <span class="cm">/**
+
+import scalaz.effect._
+// import scalaz.effect._
+
+case class EnvError(message: String)
+// defined class EnvError
+
+object SysEnv0 {
+  /**
     * This function is side effecting:
     * We do not separate performance of the effects from
     * building the program in the context nor does it denote
@@ -314,11 +312,11 @@ perform/execute it.</p>
     * bottom. This yields code littered with null checks diluting
     * application codebase where business logic should be central
     * focus.
-    */</span>
-  <span class="k">def</span> <span class="n">getEnv0</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
-    <span class="n">sys</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="n">key</span><span class="o">).</span><span class="n">getOrElse</span><span class="o">(</span><span class="kc">null</span><span class="o">)</span>
+    */
+  def getEnv0(key: String): String =
+    sys.env.get(key).getOrElse(null)
 
-  <span class="cm">/**
+  /**
     * This function is side effecting:
     * We do not separate performance of the effects from
     * building the program in the context nor do we represent
@@ -330,42 +328,42 @@ perform/execute it.</p>
     * apart from the case where the environment variable was set to
     * a value of the empty string. This may not be interesting for
     * your needs, so you get to decide.
-    */</span>
-  <span class="k">def</span> <span class="n">getEnv1</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
-    <span class="n">sys</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="n">key</span><span class="o">).</span><span class="n">getOrElse</span><span class="o">(</span><span class="s">""</span><span class="o">)</span>
+    */
+  def getEnv1(key: String): String =
+    sys.env.get(key).getOrElse("")
 
-  <span class="cm">/**
+  /**
     * This function is side effecting:
     * We still do not separate performance of the effects from
     * building the program as a value and we denote the case of
     * an environment variable name not set with a runtime exception
     * which is another form of bottom value returned.
-    */</span>
-  <span class="k">def</span> <span class="n">getEnv2</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
-    <span class="n">sys</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="n">key</span><span class="o">).</span><span class="n">getOrElse</span><span class="o">(</span><span class="k">throw</span> <span class="k">new</span> <span class="nc">RuntimeException</span><span class="o">(</span><span class="n">s</span><span class="s">"Key ${key} not found"</span><span class="o">))</span>
+    */
+  def getEnv2(key: String): String =
+    sys.env.get(key).getOrElse(throw new RuntimeException(s"Key ${key} not found"))
 
-  <span class="cm">/**
+  /**
     * This function is side effecting:
     * We are not yet separating program as a value that can be
     * combined with other programs in the same context using
     * simple and common combinators, but in this type signature
     * we explicitly denote the optionality of the returned value
     * for the case where the environment variable is not set.
-    */</span>
-  <span class="k">def</span> <span class="n">getEnv3</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span> <span class="k">=</span>
-    <span class="n">sys</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="n">key</span><span class="o">)</span>
+    */
+  def getEnv3(key: String): Option[String] =
+    sys.env.get(key)
 
-  <span class="cm">/**
+  /**
     * This function is effectful:
     * We are building a program as a value in the IO context. We also
     * denote the optionality of the underlying program's return type
     * with Option[String]. These are all good things from the perspective
     * of equationally reasoning about your code.
-    */</span>
-  <span class="k">def</span> <span class="n">getEnv4</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">IO</span><span class="o">[</span><span class="kt">Option</span><span class="o">[</span><span class="kt">String</span><span class="o">]]</span> <span class="k">=</span>
-    <span class="nc">IO</span> <span class="o">{</span> <span class="n">sys</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="n">key</span><span class="o">)</span> <span class="o">}</span>
+    */
+  def getEnv4(key: String): IO[Option[String]] =
+    IO { sys.env.get(key) }
 
-  <span class="cm">/**
+  /**
     * This function is effectful:
     * We are building a program as a value in the IO context to be
     * performed at a later time once it is combined with other IO
@@ -376,13 +374,12 @@ perform/execute it.</p>
     * explicit if we passed the value constructor for the EnvError two
     * arguments where one is the name of the environment variable and the
     * other is the message.
-    */</span>
-  <span class="k">def</span> <span class="n">getEnv5</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">IO</span><span class="o">[</span><span class="kt">EnvError</span> <span class="kt">\/</span> <span class="kt">String</span><span class="o">]</span> <span class="k">=</span>
-    <span class="nc">IO</span> <span class="o">{</span> <span class="n">sys</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="n">key</span><span class="o">)</span> <span class="o">\/&gt;</span> <span class="nc">EnvError</span><span class="o">(</span><span class="n">s</span><span class="s">"Couldn't find key ${key}."</span><span class="o">)</span> <span class="o">}</span>
-<span class="o">}</span>
-<span class="c1">// defined object SysEnv0
-</span></code></pre>
-</div>
+    */
+  def getEnv5(key: String): IO[EnvError \/ String] =
+    IO { sys.env.get(key) \/&gt; EnvError(s"Couldn't find key ${key}.") }
+}
+// defined object SysEnv0
+</code></pre>
 
 <p>By wrapping your return values inside effects/contexts you do require more
 from the consumer of your API to get at the “happy path” result, but you
@@ -399,62 +396,61 @@ optimizing and relatively prioritize the importance of higher-level
 abstraction and control over specific performance characteristics based
 on application need.</p>
 
-<p>There is a dirty little secret: you don’t have to stop at <code class="highlighter-rouge">IO</code>. In fact,
+<p>There is a dirty little secret: you don’t have to stop at <code>IO</code>. In fact,
 it is typically preferrable to wrap/layer into more specific contexts with
-limited operations/constructors and then translate to the <code class="highlighter-rouge">IO</code> context at the
-end before performing/executing the <code class="highlighter-rouge">IO</code> program. You can find out more by
+limited operations/constructors and then translate to the <code>IO</code> context at the
+end before performing/executing the <code>IO</code> program. You can find out more by
 reviewing literature (and possibly future posts on this blog) on free monads
-or extensible effects with the effect monad (sometimes referred to as <code class="highlighter-rouge">Eff</code>).</p>
+or extensible effects with the effect monad (sometimes referred to as <code>Eff</code>).</p>
 
 <p>The moral of the story is you must remember the ability to reason about the
 APIs you design are influenced by how much you make an effort to eliminate
 bottom.</p>
 
-<p>As the API designer you get to decide where to draw the line. It would be
-prudent to consider the usability of your API as a consumer. Remember if
-your library/API does not need to be highly tuned you can always provide
+<p>As the API designer you get to decide where to draw the line. It is
+prudent to consider the usability of your API as a consumer. If
+your library/code does not need to be highly tuned you can always provide a
 simpler API on top of better defined (from an equational reasoning
-perspective) to fit more consumer needs. Let’s look below to see what this
-could look like:</p>
+perspective) functions to fit more consumer needs. Let’s look below to
+see what this could look like:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">SysEnv1</span> <span class="o">{</span>
-  <span class="k">def</span> <span class="n">getEnv0</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
-    <span class="k">try</span> <span class="o">{</span>
-      <span class="n">getEnv2</span><span class="o">(</span><span class="n">key</span><span class="o">)</span>
-    <span class="o">}</span> <span class="k">catch</span> <span class="o">{</span>
-      <span class="k">case</span> <span class="n">re</span><span class="k">:</span> <span class="kt">RuntimeException</span> <span class="o">=&gt;</span> <span class="kc">null</span> <span class="c1">// this is crazy, don't do this.
-</span>    <span class="o">}</span>
+<pre><code class="language-scala">object SysEnv1 {
+  def getEnv0(key: String): String =
+    try {
+      getEnv2(key)
+    } catch {
+      case re: RuntimeException =&gt; null // this is crazy, don't do this.
+    }
 
-  <span class="k">def</span> <span class="n">getEnv1</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
-    <span class="n">getEnv0</span><span class="o">(</span><span class="n">key</span><span class="o">)</span> <span class="k">match</span> <span class="o">{</span>
-      <span class="k">case</span> <span class="kc">null</span> <span class="k">=&gt;</span> <span class="s">""</span>
-      <span class="k">case</span> <span class="n">x</span>    <span class="k">=&gt;</span> <span class="n">x</span>
-    <span class="o">}</span>
+  def getEnv1(key: String): String =
+    getEnv0(key) match {
+      case null =&gt; ""
+      case x    =&gt; x
+    }
 
-  <span class="k">def</span> <span class="n">getEnv2</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
-    <span class="n">getEnv3</span><span class="o">(</span><span class="n">key</span><span class="o">)</span> <span class="k">match</span> <span class="o">{</span>
-      <span class="k">case</span> <span class="nc">Some</span><span class="o">(</span><span class="n">x</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">x</span>
-      <span class="k">case</span> <span class="nc">None</span> <span class="k">=&gt;</span> <span class="k">throw</span> <span class="k">new</span> <span class="nc">RuntimeException</span><span class="o">(</span><span class="n">s</span><span class="s">"Key ${key} not found."</span><span class="o">)</span>
-    <span class="o">}</span>
+  def getEnv2(key: String): String =
+    getEnv3(key) match {
+      case Some(x) =&gt; x
+      case None =&gt; throw new RuntimeException(s"Key ${key} not found.")
+    }
 
-  <span class="k">def</span> <span class="n">getEnv3</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span> <span class="k">=</span>
-    <span class="n">getEnv4</span><span class="o">(</span><span class="n">key</span><span class="o">).</span><span class="n">unsafePerformIO</span>
+  def getEnv3(key: String): Option[String] =
+    getEnv4(key).unsafePerformIO
 
-  <span class="k">def</span> <span class="n">getEnv4</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">IO</span><span class="o">[</span><span class="kt">Option</span><span class="o">[</span><span class="kt">String</span><span class="o">]]</span> <span class="k">=</span>
-    <span class="n">getEnv5</span><span class="o">(</span><span class="n">key</span><span class="o">).</span><span class="n">map</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">toOption</span><span class="o">)</span>
+  def getEnv4(key: String): IO[Option[String]] =
+    getEnv5(key).map(_.toOption)
 
-  <span class="k">def</span> <span class="n">getEnv5</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">IO</span><span class="o">[</span><span class="kt">EnvError</span> <span class="kt">\/</span> <span class="kt">String</span><span class="o">]</span> <span class="k">=</span>
-    <span class="nc">IO</span> <span class="o">{</span> <span class="n">sys</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="n">key</span><span class="o">)</span> <span class="o">\/&gt;</span> <span class="nc">EnvError</span><span class="o">(</span><span class="n">s</span><span class="s">"Couldn't find key ${key}."</span><span class="o">)</span> <span class="o">}</span>
-<span class="o">}</span>
-<span class="c1">// defined object SysEnv1
-</span></code></pre>
-</div>
+  def getEnv5(key: String): IO[EnvError \/ String] =
+    IO { sys.env.get(key) \/&gt; EnvError(s"Couldn't find key ${key}.") }
+}
+// defined object SysEnv1
+</code></pre>
 
 <p>Cheers and happy reasoning.</p>
 
 <h3 id="thank-you">Thank you!</h3>
 
-<p>I would like to thank the follow non-functional programmers for reviewing
+<p>I would like to thank the following non-functional programmers for reviewing
 a rough draft of this post for flow and cohesiveness:</p>
 
 <ul>
