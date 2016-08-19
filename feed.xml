@@ -6,9 +6,481 @@
     <atom:link href="http://typed.funops.co/feed.xml" rel="self" type="application/rss+xml" />
     <description>Tutorials and code experiments about using types to build better infrastructure</description>
     <language>en-us</language>
-    <pubDate>Thu, 07 Jul 2016 16:48:45 -0500</pubDate>
-    <lastBuildDate>Thu, 07 Jul 2016 16:48:45 -0500</lastBuildDate>
+    <pubDate>Fri, 19 Aug 2016 12:50:16 -0500</pubDate>
+    <lastBuildDate>Fri, 19 Aug 2016 12:50:16 -0500</lastBuildDate>
 
+    
+      <item>
+        <title>Algebraic Data Types</title>
+        <link>http://typed.funops.co/2016/08/19/algebraic-data-types.html</link>
+        <pubDate>Fri, 19 Aug 2016 00:00:00 -0500</pubDate>
+        <author>Susan Potter</author>
+        <description>&lt;p&gt;&lt;em&gt;NOTE: This is an edit of an article I wrote for &lt;a href=&quot;http://functionalalebra.com&quot;&gt;Functional
+Algebra&lt;/a&gt; in 2012.&lt;/em&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;prerequisites&quot;&gt;Prerequisites&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Scala 2.10.x or higher&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;what-forms-of-algebraic-data-types-algdts-or-adts-for-short-are-there&quot;&gt;What forms of Algebraic Data Types (AlgDTs or ADTs for short) are there?&lt;/h2&gt;
+
+&lt;p&gt;An &lt;em&gt;algebraic data type&lt;/em&gt; can take many forms:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Sum type&lt;/li&gt;
+  &lt;li&gt;Product type&lt;/li&gt;
+  &lt;li&gt;Recursive type&lt;/li&gt;
+  &lt;li&gt;Generic type&lt;/li&gt;
+  &lt;li&gt;Hybrid combination of any of above&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;We will walk through examples of sum, product, recursive, and
+generic types below.&lt;/p&gt;
+
+&lt;h2 id=&quot;sum-types-aka-tagged-unions&quot;&gt;Sum Types (aka Tagged Unions)&lt;/h2&gt;
+
+&lt;p&gt;Synonyms:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;tagged union&lt;/li&gt;
+  &lt;li&gt;coproduct&lt;/li&gt;
+  &lt;li&gt;sum type&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Similar:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;union type&lt;/li&gt;
+  &lt;li&gt;enum(eration)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Related:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;product type (or really it’s the categorical dual of a sum type)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Applications:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;a type that has a (humanly) small set of mutually exclusive
+value constructions, e.g.
+    &lt;ul&gt;
+      &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;data Boolean = True | False&lt;/code&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;data UserType = Anonymous | Subscriber | Editor | Admin&lt;/code&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;data CardSuit = Hearts | Spades | Diamonds | Clubs&lt;/code&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Definition:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;The notion of a type having a known, and exhaustive list of
+constructors where the type must be constructed by exactly
+one of these is known as a &lt;em&gt;Tagged Union&lt;/em&gt;.
+I have also seen it called a &lt;em&gt;sum type&lt;/em&gt;. In fact,
+I much prefer the latter so expect me to use that form in
+this and later articles.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;A &lt;em&gt;sum type&lt;/em&gt; is a &lt;em&gt;concrete&lt;/em&gt; type definition where
+our type is one of &lt;code class=&quot;highlighter-rouge&quot;&gt;N&lt;/code&gt; known &lt;em&gt;constructions&lt;/em&gt;, where &lt;code class=&quot;highlighter-rouge&quot;&gt;N&lt;/code&gt; is a
+finite positive integer. Each construction may hold zero or
+more components of specific types (although these components
+may vary from construction to construction.&lt;/p&gt;
+
+&lt;p&gt;Practically speaking &lt;code class=&quot;highlighter-rouge&quot;&gt;N&lt;/code&gt; should be reasonably small most
+of the time (in the single or double digits) simply because
+all good software developers are lazy and dislike boilerplate
+code! :)&lt;/p&gt;
+
+&lt;p&gt;Let’s step back to a basic example of a &lt;em&gt;sum type&lt;/em&gt; (which
+is one variety of AlgDTs) to illustrate when you should use
+this notion and what benefits it offers over free form type
+definitions which are open.&lt;/p&gt;
+
+&lt;p&gt;Let’s fire up a &lt;code class=&quot;highlighter-rouge&quot;&gt;scala&lt;/code&gt; REPL process and paste in the following:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;coin0&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;sealed&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;trait&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;USCoin&lt;/span&gt;                 &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Penny&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;USCoin&lt;/span&gt;    &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;value&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;   &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Nickel&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;USCoin&lt;/span&gt;   &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;value&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;   &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Dime&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;USCoin&lt;/span&gt;     &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;value&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Quarter&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;USCoin&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;value&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;25&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Dollar&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;USCoin&lt;/span&gt;   &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;value&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined object coin0
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;The above just tells Scala that there is this trait (in this case
+we can pretend it is the same as the LHS of Haskell’s data
+declaration, but it isn’t always this way), &lt;code&gt;USCoin&lt;/code&gt;,
+that has a finite, and known number of constructors up front
+(typically how case classes in Scala get used [well]). Note
+that the trait is &lt;code&gt;sealed&lt;/code&gt;. For non-Scala people this
+just means that outside of this source file, no extensions of
+this trait are allowed. i.e. the compiler can guarantee that
+consumers of our libraries, or toolkits cannot extend USCoin.
+In this particular scenario that is probably what we want (not
+allowing consumers of our code to extend this). The likelihood
+that the US central bank would introduce new coins or take
+existing coins out of circulation before we update our library
+in time to cater for it, is pretty unlikely. However, there is
+another good reason why we might want this too: we can know we
+have exhaustively catered for all constructions of USCoin in our
+supporting logic or calculations.&lt;/p&gt;
+
+&lt;p&gt;Note: we could have also defined it this way:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;coin1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;sealed&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;abstract&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;USCoin&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Penny&lt;/span&gt;    &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;USCoin&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Nickel&lt;/span&gt;   &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;USCoin&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Dime&lt;/span&gt;     &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;USCoin&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Quarter&lt;/span&gt;  &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;USCoin&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;25&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Dollar&lt;/span&gt;   &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;USCoin&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined object coin1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;You might be wondering how this can be done. Let us try to use
+this code to explore this idea further. So back in your
+running &lt;code class=&quot;highlighter-rouge&quot;&gt;scala&lt;/code&gt; REPL:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;VendingMachine&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;// import your preferred implementation below
+&lt;/span&gt;  &lt;span class=&quot;k&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;coin0._&lt;/span&gt;
+
+  &lt;span class=&quot;c1&quot;&gt;// Define predicate for a vending machine that only accepts
+&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;// dimes and quarters (common today).
+&lt;/span&gt;  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;accepts&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coin&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;USCoin&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Boolean&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;coin&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;match&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Penny&lt;/span&gt;    &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Nickel&lt;/span&gt;   &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Dime&lt;/span&gt;     &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Quarter&lt;/span&gt;  &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;
+  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// &amp;lt;console&amp;gt;:19: warning: match may not be exhaustive.
+// It would fail on the following input: Dollar
+//          def accepts(coin: USCoin): Boolean = coin match {
+//                                               ^
+// defined object VendingMachine
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;What happened here is that we forgot to match on the
+&lt;code class=&quot;highlighter-rouge&quot;&gt;Dollar&lt;/code&gt; constructor for &lt;code class=&quot;highlighter-rouge&quot;&gt;USCoin&lt;/code&gt; &lt;em&gt;sum type&lt;/em&gt; and the Scala
+compiler &lt;em&gt;warned&lt;/em&gt; us about it (by default but you can make the
+Scala compiler treat this warning as a compile error if you like).&lt;/p&gt;
+
+&lt;p&gt;If you find you want this behaviour for a particular data type
+definition, then you probably want to define it as a sum type
+this way.&lt;/p&gt;
+
+&lt;h2 id=&quot;product-types-aka-record-types&quot;&gt;Product Types (aka Record Types)&lt;/h2&gt;
+
+&lt;p&gt;Synonyms:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;product type&lt;/li&gt;
+  &lt;li&gt;record type&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Similar:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Tuple (this is the simplest kind of product)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Related:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;sum type (is a dual of product type)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Applications:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;anything that can be represented as a tuple of values.
+e.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;User(123, &quot;mbbx6spp&quot;, &quot;mbbx6spp@...&quot;,
+          &quot;Snarky functional programmer&quot;)&lt;/code&gt;
+Definition:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;In the language of abstract algebra, which computer scientists
+in programming language theory have adopted, a data
+type with exactly one constructor is &lt;em&gt;isomorphic&lt;/em&gt; to
+what is often called a &lt;em&gt;product type&lt;/em&gt; that takes an ordered
+list of typed &lt;em&gt;operands&lt;/em&gt;. Informally these are
+sometimes called &lt;em&gt;Record Types&lt;/em&gt;.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://twitter.com/chvest&quot;&gt;@chvest&lt;/a&gt; pointed out while
+reviewing this article that the archetypal product type is
+the tuple. For example, perhaps we want to represent an image
+element in a HTML page. We might initially represent an image
+element as the following tuple (via a type alias in Scala below):&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Image&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined type alias Image
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;Here we take a string (the source URL), an integer (the width),
+and a second integer (the height). The problem with tuples is
+that this might also represent any number of issues. It is hard
+to know what it is referring to. &lt;em&gt;Enter product types.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;In Scala below we can represent an image element in HTML as the
+following case class.&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ImageElement&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sourceUrl&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;width&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;height&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined class ImageElement
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;Since pure product types only have one constructor for a type,
+we can eliminate the trait or abstract class &lt;code class=&quot;highlighter-rouge&quot;&gt;type&lt;/code&gt; definition
+that we used in the sum type example above with &lt;code class=&quot;highlighter-rouge&quot;&gt;USCoin&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h3 id=&quot;sum-product-type-hybrids&quot;&gt;Sum-Product Type Hybrids&lt;/h3&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://typed.funops.co/images/fbtopbar.png&quot; alt=&quot;Facebook topbar&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;How about a social network event notification. Let’s take Facebook.
+Whenever you sign into Facebook (or whatever social network you
+might use), you will likely be greeted with a visual indication
+of any notifications you might have since you last signed in.
+Things like friends &lt;em&gt;liking&lt;/em&gt; your statuses, comments, or
+making comments on your posts or posts you have commented on
+yourself.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://typed.funops.co/images/fbnotifications.png&quot; alt=&quot;Facebook notifications&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;So a first stab at modeling this with an algebraic data type in
+Haskell might look like:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kr&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;Data.DateTime&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;-- Assumes User is defined elsewhere and imported&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;-- Assume Status and Comment types are already defined&lt;/span&gt;
+&lt;span class=&quot;kr&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Notification&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;CommentNotification&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Status&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;User&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;DateTime&lt;/span&gt;
+                  &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;CommentLikeNotification&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Comment&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;User&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;DateTime&lt;/span&gt;
+                  &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;PostLikeNotification&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Status&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;User&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;DateTime&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;What did I actually do? Well if we look at the different
+notifications we see there are a variety of constructions of
+notification events, including:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;When one of your statuses is liked it tells you who and at what
+time last action was taken&lt;/li&gt;
+  &lt;li&gt;When one of your comments is liked it tells you who and the time
+last action was taken&lt;/li&gt;
+  &lt;li&gt;When a post you commented on is commented on it tells you who
+and the time last action was taken&lt;/li&gt;
+  &lt;li&gt;…&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Let us dissect the Haskell code a little. The identifier on the
+LHS, &lt;code class=&quot;highlighter-rouge&quot;&gt;Notification&lt;/code&gt;, is the type. Then the RHS contains an
+exhaustive list of possible &lt;em&gt;*constructors*&lt;/em&gt; such as:
+&lt;code class=&quot;highlighter-rouge&quot;&gt;CommentNotification&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;CommentLikeNotification&lt;/code&gt;,
+&lt;code class=&quot;highlighter-rouge&quot;&gt;PostLikeNotification&lt;/code&gt; for our simple model.&lt;/p&gt;
+
+&lt;p&gt;Now we could have modeled &lt;code class=&quot;highlighter-rouge&quot;&gt;Notification&lt;/code&gt; data type a little
+differently. Let us consider the following modeling of the domain:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kr&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;Data.DateTime&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;-- Assumes User is defined elsewhere and imported&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;-- We might want to add more constructors for Post sum type of a more&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;-- complete model of Facebook notifications, but left as a homework to&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;-- reader, because every algebra lesson has this ;)&lt;/span&gt;
+&lt;span class=&quot;kr&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Post&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Status&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Text&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;DateTime&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Comment&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Text&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;DateTime&lt;/span&gt;
+&lt;span class=&quot;kr&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Notification&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Notification&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Post&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;User&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;DateTime&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;This model of the domain of Facebook notifications uses a pure
+&lt;em&gt;product type&lt;/em&gt; for the &lt;code class=&quot;highlighter-rouge&quot;&gt;Notification&lt;/code&gt; type definition and a
+hybrid sum-product type for the &lt;code class=&quot;highlighter-rouge&quot;&gt;Post&lt;/code&gt; type.&lt;/p&gt;
+
+&lt;p&gt;Exactly how you model this domain will depend on what properties
+you would like the various types to possess. In fact, there are
+many ways you can model this domain with various forms of
+algebraic data types (AlgDT). It all depends on your program’s
+view of the domain.&lt;/p&gt;
+
+&lt;p&gt;There is no one presice view of a particular domain, it depends
+on your program’s functionality. For example, if you are
+building a front office trade posting system, you are unlikely to
+need to model the historical view of a security or instrument
+type. You just need to know the active identifier (e.g. ticker,
+ISIN, CUSIP, internal id, etc.) for the security being traded
+today to flow through correctly.&lt;/p&gt;
+
+&lt;p&gt;However, a knowledge management tool may need to model a security
+or instrument to have a historical view (e.g. how a corporate
+action impacted a security in the past, or the historical view
+of identifications or vendor symbols).&lt;/p&gt;
+
+&lt;h2 id=&quot;recursive-types&quot;&gt;Recursive Types&lt;/h2&gt;
+
+&lt;p&gt;Synonyms:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;recursive data type&lt;/li&gt;
+  &lt;li&gt;recursively-defined data type&lt;/li&gt;
+  &lt;li&gt;inductive data type&lt;/li&gt;
+  &lt;li&gt;inductively-defined data type&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Related:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;dynamically defined data structures&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Applications:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;structures that build out dynamically defined directed graphs,
+e.g. lists, trees, etc.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Definition:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;A recursive type is a type that is defined in terms of itself.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;We will explore this form of algebraic data type using the example
+of a binary tree with integer values:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;sealed&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;trait&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IntTree&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined trait IntTree
+&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IntLeaf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IntTree&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined class IntLeaf
+&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IntBranch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;left&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IntTree&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;right&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IntTree&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IntTree&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined class IntBranch
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;We can now build up trees with integers at the leaves like so:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;inttrees&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;t0&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IntTree&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IntLeaf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;t1&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IntTree&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IntBranch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;IntLeaf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IntBranch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;IntLeaf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IntLeaf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)))&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined object inttrees
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;In Haskell we can express the above example with a little less
+syntactic clutter like so:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kr&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IntTree&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IntLeaf&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IntBranch&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IntTree&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;t0&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IntLeaf&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;9&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;t1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IntBranch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;IntLeaf&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;IntBranch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;IntLeaf&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;IntLeaf&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;You will note in the above definition given the possible
+constructions that no empty &lt;code class=&quot;highlighter-rouge&quot;&gt;IntTree&lt;/code&gt; can be constructed.&lt;/p&gt;
+
+&lt;p&gt;For bonus points: what would you do to the definition above to
+allow for an empty &lt;code class=&quot;highlighter-rouge&quot;&gt;IntTree&lt;/code&gt; value construction?&lt;/p&gt;
+
+&lt;h2 id=&quot;generic-types&quot;&gt;Generic Types&lt;/h2&gt;
+
+&lt;p&gt;Synomyms:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;parametric types&lt;/li&gt;
+  &lt;li&gt;generic types&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Similar:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;higher-kinded polymorphism&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Related:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Should &lt;em&gt;not&lt;/em&gt; be confused with Generalized Algebraic Data Types
+which are a whole other topic, though related to algebraic
+data types.&lt;/li&gt;
+  &lt;li&gt;concrete types are instantiations of a generic type after
+the type argument to the type constructor. Note: disctinction
+between type constructor and value or data constructor.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Applications:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;any type where a constituent element of the algebraic data type
+can vary across uses.&lt;/li&gt;
+  &lt;li&gt;can be used to create phantom types when needed.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Definition:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;A type paramaterized on another type at type construction.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;For this form of type that is supported in many mainstream
+functional programming languages like Haskell, Scala, and
+OCaml we will explore how to define a type that parameterizes
+on a record constituent of the definition:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;sealed&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;abstract&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;GenericTree&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined class GenericTree
+&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Leaf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;](&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;GenericTree&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined class Leaf
+&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Branch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;](&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;left&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GenericTree&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;right&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GenericTree&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;])&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;GenericTree&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// defined class Branch
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;This allows us to use the same structure with different specific
+types such that we can build a tree with a &lt;code class=&quot;highlighter-rouge&quot;&gt;String&lt;/code&gt; at each leaf
+with the same generic code as that used for tree values constructed
+with &lt;code class=&quot;highlighter-rouge&quot;&gt;Int&lt;/code&gt; values at the leaves.&lt;/p&gt;
+
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;This was a whirlwind introduction to algebraic data types and
+related ideas. There are a lot more relationships and assocations
+that can be explored w.r.t. algebraic data types but I hope this
+provides a simple, understandable introduction with compiling
+examples.&lt;/p&gt;
+
+&lt;p&gt;Cheers.&lt;/p&gt;
+
+&lt;p&gt;PS If you find any errors, heckle me on twitter
+&lt;a href=&quot;https://twitter.com/SusanPotter&quot;&gt;@SusanPotter&lt;/a&gt;.&lt;/p&gt;
+</description>
+      </item>
     
       <item>
         <title>The Unreasonable Effectiveness of Reasoning: Eliminating Bottom</title>
@@ -760,7 +1232,7 @@ like so:&lt;/p&gt;
 &lt;span class=&quot;n&quot;&gt;scala&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;implicit&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;regionEquality&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Eq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
      &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;   &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;eqv&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;r1&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r2&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Boolean&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r2&lt;/span&gt;
      &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;regionEquality&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;cats.Eq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;$anon$1&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b16f0a4&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;regionEquality&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;cats.Eq&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Region&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;$anon$1&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;aca5f88&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width initial-scale=1">
+
+  <title>Algebraic Data Types</title>
+  <meta name="description" content="NOTE: This is an edit of an article I wrote for FunctionalAlgebra in 2012.">
+
+  <link rel="stylesheet" href="/public/css/main.css">
+  <link rel="canonical" href="http://typed.funops.co/2016/08/19/algebraic-data-types.html">
+  <link rel="alternate" type="application/atom+xml" title="TypedOps" href="http://typed.funops.co/feed.xml" />
+</head>
+
+
+  <body>
+    <header class="header">
+	<div class="header-container">
+		<div class="nav">
+			
+				<li>
+					<a href="/index.html">home</a>
+				</li>
+			
+			
+				<li>
+					<a href="/archive.html">archive</a>
+				</li>
+			
+			
+				<li>
+					<a href="/category.html">category</a>
+				</li>
+			
+			
+				<li>
+					<a href="/tag.html">tag</a>
+				</li>
+      
+		</div>
+		<div class="description"> Better infrastructure through types </div>
+		<ul class="social-links">
+			<li>
+				<a href="https://github.com/mbbx6spp" title="Github">
+					<img width="19px" height="19px" src="/public/images/github.png"/>
+				</a>
+			</li>
+			<li>
+				<a href="/feed.xml" title="RSS">
+					<img width="19px" height="19px" src="/public/images/rss.png"/>
+				</a>
+			</li>
+			<li>
+				<a href="https://twitter.com/SusanPotter" title="Twitter">
+					<img width="19px" height="19px" src="/public/images/twitter.png"/>
+				</a>
+			</li>
+		</ul>
+	</div>
+</header>
+
+    <br>
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="single row gutters">
+  <time class="published" datetime="2016-08-19">19 August 2016</time>
+  <h2>Algebraic Data Types</h2>
+
+  <p><em>NOTE: This is an edit of an article I wrote for <a href="http://functionalalebra.com">Functional
+Algebra</a> in 2012.</em></p>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<ul>
+  <li>Scala 2.10.x or higher</li>
+</ul>
+
+<h2 id="what-forms-of-algebraic-data-types-algdts-or-adts-for-short-are-there">What forms of Algebraic Data Types (AlgDTs or ADTs for short) are there?</h2>
+
+<p>An <em>algebraic data type</em> can take many forms:</p>
+
+<ul>
+  <li>Sum type</li>
+  <li>Product type</li>
+  <li>Recursive type</li>
+  <li>Generic type</li>
+  <li>Hybrid combination of any of above</li>
+</ul>
+
+<p>We will walk through examples of sum, product, recursive, and
+generic types below.</p>
+
+<h2 id="sum-types-aka-tagged-unions">Sum Types (aka Tagged Unions)</h2>
+
+<p>Synonyms:</p>
+
+<ul>
+  <li>tagged union</li>
+  <li>coproduct</li>
+  <li>sum type</li>
+</ul>
+
+<p>Similar:</p>
+
+<ul>
+  <li>union type</li>
+  <li>enum(eration)</li>
+</ul>
+
+<p>Related:</p>
+
+<ul>
+  <li>product type (or really it’s the categorical dual of a sum type)</li>
+</ul>
+
+<p>Applications:</p>
+
+<ul>
+  <li>a type that has a (humanly) small set of mutually exclusive
+value constructions, e.g.
+    <ul>
+      <li><code class="highlighter-rouge">data Boolean = True | False</code></li>
+      <li><code class="highlighter-rouge">data UserType = Anonymous | Subscriber | Editor | Admin</code></li>
+      <li><code class="highlighter-rouge">data CardSuit = Hearts | Spades | Diamonds | Clubs</code></li>
+    </ul>
+  </li>
+</ul>
+
+<p>Definition:</p>
+
+<blockquote>
+  <p>The notion of a type having a known, and exhaustive list of
+constructors where the type must be constructed by exactly
+one of these is known as a <em>Tagged Union</em>.
+I have also seen it called a <em>sum type</em>. In fact,
+I much prefer the latter so expect me to use that form in
+this and later articles.</p>
+</blockquote>
+
+<p>A <em>sum type</em> is a <em>concrete</em> type definition where
+our type is one of <code class="highlighter-rouge">N</code> known <em>constructions</em>, where <code class="highlighter-rouge">N</code> is a
+finite positive integer. Each construction may hold zero or
+more components of specific types (although these components
+may vary from construction to construction.</p>
+
+<p>Practically speaking <code class="highlighter-rouge">N</code> should be reasonably small most
+of the time (in the single or double digits) simply because
+all good software developers are lazy and dislike boilerplate
+code! :)</p>
+
+<p>Let’s step back to a basic example of a <em>sum type</em> (which
+is one variety of AlgDTs) to illustrate when you should use
+this notion and what benefits it offers over free form type
+definitions which are open.</p>
+
+<p>Let’s fire up a <code class="highlighter-rouge">scala</code> REPL process and paste in the following:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">coin0</span> <span class="o">{</span>
+  <span class="k">sealed</span> <span class="k">trait</span> <span class="nc">USCoin</span>                 <span class="o">{</span> <span class="k">def</span> <span class="n">value</span><span class="k">:</span> <span class="kt">Int</span>  <span class="o">}</span>
+  <span class="k">case</span> <span class="k">object</span> <span class="nc">Penny</span> <span class="k">extends</span> <span class="nc">USCoin</span>    <span class="o">{</span> <span class="k">def</span> <span class="n">value</span> <span class="k">=</span> <span class="mi">1</span>   <span class="o">}</span>
+  <span class="k">case</span> <span class="k">object</span> <span class="nc">Nickel</span> <span class="k">extends</span> <span class="nc">USCoin</span>   <span class="o">{</span> <span class="k">def</span> <span class="n">value</span> <span class="k">=</span> <span class="mi">5</span>   <span class="o">}</span>
+  <span class="k">case</span> <span class="k">object</span> <span class="nc">Dime</span> <span class="k">extends</span> <span class="nc">USCoin</span>     <span class="o">{</span> <span class="k">def</span> <span class="n">value</span> <span class="k">=</span> <span class="mi">10</span>  <span class="o">}</span>
+  <span class="k">case</span> <span class="k">object</span> <span class="nc">Quarter</span> <span class="k">extends</span> <span class="nc">USCoin</span>  <span class="o">{</span> <span class="k">def</span> <span class="n">value</span> <span class="k">=</span> <span class="mi">25</span>  <span class="o">}</span>
+  <span class="k">case</span> <span class="k">object</span> <span class="nc">Dollar</span> <span class="k">extends</span> <span class="nc">USCoin</span>   <span class="o">{</span> <span class="k">def</span> <span class="n">value</span> <span class="k">=</span> <span class="mi">100</span> <span class="o">}</span>
+<span class="o">}</span>
+<span class="c1">// defined object coin0
+</span></code></pre>
+</div>
+
+<p>The above just tells Scala that there is this trait (in this case
+we can pretend it is the same as the LHS of Haskell’s data
+declaration, but it isn’t always this way), <code>USCoin</code>,
+that has a finite, and known number of constructors up front
+(typically how case classes in Scala get used [well]). Note
+that the trait is <code>sealed</code>. For non-Scala people this
+just means that outside of this source file, no extensions of
+this trait are allowed. i.e. the compiler can guarantee that
+consumers of our libraries, or toolkits cannot extend USCoin.
+In this particular scenario that is probably what we want (not
+allowing consumers of our code to extend this). The likelihood
+that the US central bank would introduce new coins or take
+existing coins out of circulation before we update our library
+in time to cater for it, is pretty unlikely. However, there is
+another good reason why we might want this too: we can know we
+have exhaustively catered for all constructions of USCoin in our
+supporting logic or calculations.</p>
+
+<p>Note: we could have also defined it this way:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">coin1</span> <span class="o">{</span>
+  <span class="k">sealed</span> <span class="k">abstract</span> <span class="k">class</span> <span class="nc">USCoin</span><span class="o">(</span><span class="n">value</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span>
+  <span class="k">case</span> <span class="k">object</span> <span class="nc">Penny</span>    <span class="k">extends</span> <span class="nc">USCoin</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+  <span class="k">case</span> <span class="k">object</span> <span class="nc">Nickel</span>   <span class="k">extends</span> <span class="nc">USCoin</span><span class="o">(</span><span class="mi">5</span><span class="o">)</span>
+  <span class="k">case</span> <span class="k">object</span> <span class="nc">Dime</span>     <span class="k">extends</span> <span class="nc">USCoin</span><span class="o">(</span><span class="mi">10</span><span class="o">)</span>
+  <span class="k">case</span> <span class="k">object</span> <span class="nc">Quarter</span>  <span class="k">extends</span> <span class="nc">USCoin</span><span class="o">(</span><span class="mi">25</span><span class="o">)</span>
+  <span class="k">case</span> <span class="k">object</span> <span class="nc">Dollar</span>   <span class="k">extends</span> <span class="nc">USCoin</span><span class="o">(</span><span class="mi">100</span><span class="o">)</span>
+<span class="o">}</span>
+<span class="c1">// defined object coin1
+</span></code></pre>
+</div>
+
+<p>You might be wondering how this can be done. Let us try to use
+this code to explore this idea further. So back in your
+running <code class="highlighter-rouge">scala</code> REPL:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">VendingMachine</span> <span class="o">{</span>
+  <span class="c1">// import your preferred implementation below
+</span>  <span class="k">import</span> <span class="nn">coin0._</span>
+
+  <span class="c1">// Define predicate for a vending machine that only accepts
+</span>  <span class="c1">// dimes and quarters (common today).
+</span>  <span class="k">def</span> <span class="n">accepts</span><span class="o">(</span><span class="n">coin</span><span class="k">:</span> <span class="kt">USCoin</span><span class="o">)</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="n">coin</span> <span class="k">match</span> <span class="o">{</span>
+    <span class="k">case</span> <span class="nc">Penny</span>    <span class="k">=&gt;</span> <span class="kc">false</span>
+    <span class="k">case</span> <span class="nc">Nickel</span>   <span class="k">=&gt;</span> <span class="kc">false</span>
+    <span class="k">case</span> <span class="nc">Dime</span>     <span class="k">=&gt;</span> <span class="kc">true</span>
+    <span class="k">case</span> <span class="nc">Quarter</span>  <span class="k">=&gt;</span> <span class="kc">true</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+<span class="c1">// &lt;console&gt;:19: warning: match may not be exhaustive.
+// It would fail on the following input: Dollar
+//          def accepts(coin: USCoin): Boolean = coin match {
+//                                               ^
+// defined object VendingMachine
+</span></code></pre>
+</div>
+
+<p>What happened here is that we forgot to match on the
+<code class="highlighter-rouge">Dollar</code> constructor for <code class="highlighter-rouge">USCoin</code> <em>sum type</em> and the Scala
+compiler <em>warned</em> us about it (by default but you can make the
+Scala compiler treat this warning as a compile error if you like).</p>
+
+<p>If you find you want this behaviour for a particular data type
+definition, then you probably want to define it as a sum type
+this way.</p>
+
+<h2 id="product-types-aka-record-types">Product Types (aka Record Types)</h2>
+
+<p>Synonyms:</p>
+
+<ul>
+  <li>product type</li>
+  <li>record type</li>
+</ul>
+
+<p>Similar:</p>
+
+<ul>
+  <li>Tuple (this is the simplest kind of product)</li>
+</ul>
+
+<p>Related:</p>
+
+<ul>
+  <li>sum type (is a dual of product type)</li>
+</ul>
+
+<p>Applications:</p>
+
+<ul>
+  <li>anything that can be represented as a tuple of values.
+e.g. <code class="highlighter-rouge">User(123, "mbbx6spp", "mbbx6spp@...",
+          "Snarky functional programmer")</code>
+Definition:</li>
+</ul>
+
+<blockquote>
+  <p>In the language of abstract algebra, which computer scientists
+in programming language theory have adopted, a data
+type with exactly one constructor is <em>isomorphic</em> to
+what is often called a <em>product type</em> that takes an ordered
+list of typed <em>operands</em>. Informally these are
+sometimes called <em>Record Types</em>.</p>
+</blockquote>
+
+<p><a href="https://twitter.com/chvest">@chvest</a> pointed out while
+reviewing this article that the archetypal product type is
+the tuple. For example, perhaps we want to represent an image
+element in a HTML page. We might initially represent an image
+element as the following tuple (via a type alias in Scala below):</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">type</span> <span class="kt">Image</span> <span class="o">=</span> <span class="o">(</span><span class="nc">String</span><span class="o">,</span> <span class="nc">Int</span><span class="o">,</span> <span class="nc">Int</span><span class="o">)</span>
+<span class="c1">// defined type alias Image
+</span></code></pre>
+</div>
+
+<p>Here we take a string (the source URL), an integer (the width),
+and a second integer (the height). The problem with tuples is
+that this might also represent any number of issues. It is hard
+to know what it is referring to. <em>Enter product types.</em></p>
+
+<p>In Scala below we can represent an image element in HTML as the
+following case class.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">case</span> <span class="k">class</span> <span class="nc">ImageElement</span><span class="o">(</span><span class="n">sourceUrl</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">width</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">height</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span>
+<span class="c1">// defined class ImageElement
+</span></code></pre>
+</div>
+
+<p>Since pure product types only have one constructor for a type,
+we can eliminate the trait or abstract class <code class="highlighter-rouge">type</code> definition
+that we used in the sum type example above with <code class="highlighter-rouge">USCoin</code>.</p>
+
+<h3 id="sum-product-type-hybrids">Sum-Product Type Hybrids</h3>
+
+<p><img src="http://typed.funops.co/images/fbtopbar.png" alt="Facebook topbar" /></p>
+
+<p>How about a social network event notification. Let’s take Facebook.
+Whenever you sign into Facebook (or whatever social network you
+might use), you will likely be greeted with a visual indication
+of any notifications you might have since you last signed in.
+Things like friends <em>liking</em> your statuses, comments, or
+making comments on your posts or posts you have commented on
+yourself.</p>
+
+<p><img src="http://typed.funops.co/images/fbnotifications.png" alt="Facebook notifications" /></p>
+
+<p>So a first stab at modeling this with an algebraic data type in
+Haskell might look like:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="kr">import</span> <span class="nn">Data.DateTime</span>
+
+<span class="c1">-- Assumes User is defined elsewhere and imported</span>
+
+<span class="c1">-- Assume Status and Comment types are already defined</span>
+<span class="kr">data</span> <span class="kt">Notification</span> <span class="o">=</span> <span class="kt">CommentNotification</span> <span class="kt">Status</span> <span class="p">[</span><span class="kt">User</span><span class="p">]</span> <span class="kt">DateTime</span>
+                  <span class="o">|</span> <span class="kt">CommentLikeNotification</span> <span class="kt">Comment</span> <span class="p">[</span><span class="kt">User</span><span class="p">]</span> <span class="kt">DateTime</span>
+                  <span class="o">|</span> <span class="kt">PostLikeNotification</span> <span class="kt">Status</span> <span class="p">[</span><span class="kt">User</span><span class="p">]</span> <span class="kt">DateTime</span>
+</code></pre>
+</div>
+
+<p>What did I actually do? Well if we look at the different
+notifications we see there are a variety of constructions of
+notification events, including:</p>
+
+<ul>
+  <li>When one of your statuses is liked it tells you who and at what
+time last action was taken</li>
+  <li>When one of your comments is liked it tells you who and the time
+last action was taken</li>
+  <li>When a post you commented on is commented on it tells you who
+and the time last action was taken</li>
+  <li>…</li>
+</ul>
+
+<p>Let us dissect the Haskell code a little. The identifier on the
+LHS, <code class="highlighter-rouge">Notification</code>, is the type. Then the RHS contains an
+exhaustive list of possible <em>*constructors*</em> such as:
+<code class="highlighter-rouge">CommentNotification</code>, <code class="highlighter-rouge">CommentLikeNotification</code>,
+<code class="highlighter-rouge">PostLikeNotification</code> for our simple model.</p>
+
+<p>Now we could have modeled <code class="highlighter-rouge">Notification</code> data type a little
+differently. Let us consider the following modeling of the domain:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="kr">import</span> <span class="nn">Data.DateTime</span>
+
+<span class="c1">-- Assumes User is defined elsewhere and imported</span>
+
+<span class="c1">-- We might want to add more constructors for Post sum type of a more</span>
+<span class="c1">-- complete model of Facebook notifications, but left as a homework to</span>
+<span class="c1">-- reader, because every algebra lesson has this ;)</span>
+<span class="kr">data</span> <span class="kt">Post</span> <span class="o">=</span> <span class="kt">Status</span> <span class="kt">Text</span> <span class="kt">DateTime</span> <span class="o">|</span> <span class="kt">Comment</span> <span class="kt">Text</span> <span class="kt">DateTime</span>
+<span class="kr">data</span> <span class="kt">Notification</span> <span class="o">=</span> <span class="kt">Notification</span> <span class="kt">Post</span> <span class="p">[</span><span class="kt">User</span><span class="p">]</span> <span class="kt">DateTime</span>
+</code></pre>
+</div>
+
+<p>This model of the domain of Facebook notifications uses a pure
+<em>product type</em> for the <code class="highlighter-rouge">Notification</code> type definition and a
+hybrid sum-product type for the <code class="highlighter-rouge">Post</code> type.</p>
+
+<p>Exactly how you model this domain will depend on what properties
+you would like the various types to possess. In fact, there are
+many ways you can model this domain with various forms of
+algebraic data types (AlgDT). It all depends on your program’s
+view of the domain.</p>
+
+<p>There is no one presice view of a particular domain, it depends
+on your program’s functionality. For example, if you are
+building a front office trade posting system, you are unlikely to
+need to model the historical view of a security or instrument
+type. You just need to know the active identifier (e.g. ticker,
+ISIN, CUSIP, internal id, etc.) for the security being traded
+today to flow through correctly.</p>
+
+<p>However, a knowledge management tool may need to model a security
+or instrument to have a historical view (e.g. how a corporate
+action impacted a security in the past, or the historical view
+of identifications or vendor symbols).</p>
+
+<h2 id="recursive-types">Recursive Types</h2>
+
+<p>Synonyms:</p>
+
+<ul>
+  <li>recursive data type</li>
+  <li>recursively-defined data type</li>
+  <li>inductive data type</li>
+  <li>inductively-defined data type</li>
+</ul>
+
+<p>Related:</p>
+
+<ul>
+  <li>dynamically defined data structures</li>
+</ul>
+
+<p>Applications:</p>
+
+<ul>
+  <li>structures that build out dynamically defined directed graphs,
+e.g. lists, trees, etc.</li>
+</ul>
+
+<p>Definition:</p>
+
+<blockquote>
+  <p>A recursive type is a type that is defined in terms of itself.</p>
+</blockquote>
+
+<p>We will explore this form of algebraic data type using the example
+of a binary tree with integer values:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">sealed</span> <span class="k">trait</span> <span class="nc">IntTree</span>
+<span class="c1">// defined trait IntTree
+</span>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">IntLeaf</span><span class="o">(</span><span class="n">value</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">IntTree</span>
+<span class="c1">// defined class IntLeaf
+</span>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">IntBranch</span><span class="o">(</span><span class="n">left</span><span class="k">:</span> <span class="kt">IntTree</span><span class="o">,</span> <span class="n">right</span><span class="k">:</span> <span class="kt">IntTree</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">IntTree</span>
+<span class="c1">// defined class IntBranch
+</span></code></pre>
+</div>
+
+<p>We can now build up trees with integers at the leaves like so:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">inttrees</span> <span class="o">{</span>
+  <span class="k">val</span> <span class="n">t0</span><span class="k">:</span> <span class="kt">IntTree</span> <span class="o">=</span> <span class="nc">IntLeaf</span><span class="o">(</span><span class="mi">9</span><span class="o">)</span>
+  <span class="k">val</span> <span class="n">t1</span><span class="k">:</span> <span class="kt">IntTree</span> <span class="o">=</span> <span class="nc">IntBranch</span><span class="o">(</span><span class="nc">IntLeaf</span><span class="o">(</span><span class="mi">6</span><span class="o">),</span> <span class="nc">IntBranch</span><span class="o">(</span><span class="nc">IntLeaf</span><span class="o">(</span><span class="mi">4</span><span class="o">),</span> <span class="nc">IntLeaf</span><span class="o">(</span><span class="mi">8</span><span class="o">)))</span>
+<span class="o">}</span>
+<span class="c1">// defined object inttrees
+</span></code></pre>
+</div>
+
+<p>In Haskell we can express the above example with a little less
+syntactic clutter like so:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="kr">data</span> <span class="kt">IntTree</span> <span class="o">=</span> <span class="kt">IntLeaf</span> <span class="kt">Int</span> <span class="o">|</span> <span class="kt">IntBranch</span> <span class="kt">IntTree</span>
+
+<span class="n">t0</span> <span class="o">=</span> <span class="kt">IntLeaf</span> <span class="mi">9</span>
+
+<span class="n">t1</span> <span class="o">=</span> <span class="kt">IntBranch</span> <span class="p">(</span><span class="kt">IntLeaf</span> <span class="mi">6</span><span class="p">)</span> <span class="p">(</span><span class="kt">IntBranch</span> <span class="p">(</span><span class="kt">IntLeaf</span> <span class="mi">4</span><span class="p">)</span> <span class="p">(</span><span class="kt">IntLeaf</span> <span class="mi">8</span><span class="p">))</span>
+</code></pre>
+</div>
+
+<p>You will note in the above definition given the possible
+constructions that no empty <code class="highlighter-rouge">IntTree</code> can be constructed.</p>
+
+<p>For bonus points: what would you do to the definition above to
+allow for an empty <code class="highlighter-rouge">IntTree</code> value construction?</p>
+
+<h2 id="generic-types">Generic Types</h2>
+
+<p>Synomyms:</p>
+
+<ul>
+  <li>parametric types</li>
+  <li>generic types</li>
+</ul>
+
+<p>Similar:</p>
+
+<ul>
+  <li>higher-kinded polymorphism</li>
+</ul>
+
+<p>Related:</p>
+
+<ul>
+  <li>Should <em>not</em> be confused with Generalized Algebraic Data Types
+which are a whole other topic, though related to algebraic
+data types.</li>
+  <li>concrete types are instantiations of a generic type after
+the type argument to the type constructor. Note: disctinction
+between type constructor and value or data constructor.</li>
+</ul>
+
+<p>Applications:</p>
+
+<ul>
+  <li>any type where a constituent element of the algebraic data type
+can vary across uses.</li>
+  <li>can be used to create phantom types when needed.</li>
+</ul>
+
+<p>Definition:</p>
+
+<blockquote>
+  <p>A type paramaterized on another type at type construction.</p>
+</blockquote>
+
+<p>For this form of type that is supported in many mainstream
+functional programming languages like Haskell, Scala, and
+OCaml we will explore how to define a type that parameterizes
+on a record constituent of the definition:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">sealed</span> <span class="k">abstract</span> <span class="k">class</span> <span class="nc">GenericTree</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+<span class="c1">// defined class GenericTree
+</span>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">Leaf</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">value</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">GenericTree</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+<span class="c1">// defined class Leaf
+</span>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">Branch</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">left</span><span class="k">:</span> <span class="kt">GenericTree</span><span class="o">[</span><span class="kt">A</span><span class="o">],</span> <span class="n">right</span><span class="k">:</span> <span class="kt">GenericTree</span><span class="o">[</span><span class="kt">A</span><span class="o">])</span> <span class="k">extends</span> <span class="nc">GenericTree</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+<span class="c1">// defined class Branch
+</span></code></pre>
+</div>
+
+<p>This allows us to use the same structure with different specific
+types such that we can build a tree with a <code class="highlighter-rouge">String</code> at each leaf
+with the same generic code as that used for tree values constructed
+with <code class="highlighter-rouge">Int</code> values at the leaves.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>This was a whirlwind introduction to algebraic data types and
+related ideas. There are a lot more relationships and assocations
+that can be explored w.r.t. algebraic data types but I hope this
+provides a simple, understandable introduction with compiling
+examples.</p>
+
+<p>Cheers.</p>
+
+<p>PS If you find any errors, heckle me on twitter
+<a href="https://twitter.com/SusanPotter">@SusanPotter</a>.</p>
+
+
+  <p>
+  Blog post sponsored by <a href="http://referentiallabs.com">Referential Labs</a>,
+  and written by <a href="https://twitter.com/SusanPotter">Susan Potter</a>.
+  </p>
+
+</article>
+
+
+      </div>
+    </div>
+
+    
+<div>
+
+<!--
+<link href="//cdn-images.mailchimp.com/embedcode/slim-10_7.css" rel="stylesheet" type="text/css">
+-->
+<style type="text/css">
+#mc_embed_signup {
+  background:#fff;
+  clear:left;
+  font-size:14px;
+  width: 480px;
+  text-align: center;
+  margin: auto;
+}
+</style>
+<div id="mc_embed_signup">
+  <form action="//gmail.us13.list-manage.com/subscribe/post?u=9f637599198f6295f84f3845d&amp;id=e7adfc802a&SOURCEURL=http://typed.funops.co/2016/08/19/algebraic-data-types.html&SOURCE=http://typed.funops.co" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank" novalidate>
+    <div id="mc_embed_signup_scroll">
+      <label for="mce-EMAIL">Subscribe for a monthly tip from Referential Labs on building more reliable distributed systems</label>
+      <div>
+      <input type="email" value="" name="EMAIL" class="email" id="mce-EMAIL" placeholder="email address" required>
+      <input type="submit" value="Subscribe" name="subscribe" id="mc-embedded-subscribe" class="button">
+      </div>
+      <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_9f637599198f6295f84f3845d_e7adfc802a" tabindex="-1" value=""></div>
+    </div>
+  </form>
+</div>
+
+</div>
+
+<footer class="footer">
+
+  <p>
+    Copyright &copy; 2015-2016
+    <a href="https://twitter.com/SusanPotter">@SusanPotter</a> and
+    <a href="https://twitter.com/referentiallabs">@referentiallabs</a>.
+  </p>
+</footer>
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-80008235-2', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  </body>
+
+</html>
