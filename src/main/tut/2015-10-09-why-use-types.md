@@ -219,7 +219,7 @@ above. Let's recap what we did:
    gained back from this simple act.
 4. We have encoded a more meaningful representation for CIDR values that will
    limit the possible values to valid basic constructions. A `String` value
-   gives us know structure to verify and the validation logic on a `String`
+   gives us no structure to verify and the validation logic on a `String`
    value for the CIDR case would be error prone and complex without decomposing
    into the structural elements of the value in the first place. Even using
    regular expressions to validate a `String` representing a CIDR requires us
