@@ -444,7 +444,7 @@ of a binary tree with integer values:</p>
 <p>In Haskell we can express the above example with a little less
 syntactic clutter like so:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="kr">data</span> <span class="kt">IntTree</span> <span class="o">=</span> <span class="kt">IntLeaf</span> <span class="kt">Int</span> <span class="o">|</span> <span class="kt">IntBranch</span> <span class="kt">IntTree</span>
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="kr">data</span> <span class="kt">IntTree</span> <span class="o">=</span> <span class="kt">IntLeaf</span> <span class="kt">Int</span> <span class="o">|</span> <span class="kt">IntBranch</span> <span class="kt">IntTree</span> <span class="kt">IntTree</span>
 
 <span class="n">t0</span> <span class="o">=</span> <span class="kt">IntLeaf</span> <span class="mi">9</span>
 
