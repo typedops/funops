@@ -330,7 +330,7 @@ In Haskell we can express the above example with a little less
 syntactic clutter like so:
 
 ```haskell
-data IntTree = IntLeaf Int | IntBranch IntTree
+data IntTree = IntLeaf Int | IntBranch IntTree IntTree
 
 t0 = IntLeaf 9
 
