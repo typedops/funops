@@ -1,12 +1,12 @@
 title: TypedOps
 motto: Better infrastructure through types
 #baseurl: "/funops" # the subpath of your site, e.g. /blog/
-url: "http://typedops.github.io" # the base hostname & protocol for your site
+url: "http://typed.funops.co" # the base hostname & protocol for your site
 twitter_username: SusanPotter
 github_username:  mbbx6spp
 
 
-destination:        /home/spotter/src/oss/typedops/funops/target/jekyll
+destination:        ./target/jekyll
 source:             .
 posts_dir:          ./_posts
 layouts_dir:        ./_layouts
