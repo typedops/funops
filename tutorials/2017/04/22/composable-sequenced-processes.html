@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width initial-scale=1">
+
+  <title>Composable Sequenced Processes</title>
+  <meta name="description" content="This blog series demonstrates how typed functionalprogramming is relevant in operations and why you should care using simple,yet practical and motivating exa...">
+
+  <link rel="stylesheet" href="/public/css/main.css">
+  <link rel="canonical" href="http://typed.funops.co/tutorials/2017/04/22/composable-sequenced-processes.html">
+  <link rel="alternate" type="application/atom+xml" title="TypedOps" href="http://typed.funops.co/feed.xml" />
+</head>
+
+
+  <body>
+    <header class="header">
+	<div class="header-container">
+		<div class="nav">
+			
+				<li>
+					<a href="/index.html">home</a>
+				</li>
+			
+			
+				<li>
+					<a href="/archive.html">archive</a>
+				</li>
+			
+			
+				<li>
+					<a href="/category.html">category</a>
+				</li>
+			
+			
+				<li>
+					<a href="/tag.html">tag</a>
+				</li>
+      
+		</div>
+		<div class="description"> Better infrastructure through types </div>
+		<ul class="social-links">
+			<li>
+				<a href="https://github.com/mbbx6spp" title="Github">
+					<img width="19px" height="19px" src="/public/images/github.png"/>
+				</a>
+			</li>
+			<li>
+				<a href="/feed.xml" title="RSS">
+					<img width="19px" height="19px" src="/public/images/rss.png"/>
+				</a>
+			</li>
+			<li>
+				<a href="https://twitter.com/SusanPotter" title="Twitter">
+					<img width="19px" height="19px" src="/public/images/twitter.png"/>
+				</a>
+			</li>
+		</ul>
+	</div>
+</header>
+
+    <br>
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="single row gutters">
+  <time class="published" datetime="2017-04-22">22 April 2017</time>
+  <h2>Composable Sequenced Processes</h2>
+
+  <p>This blog series demonstrates how typed functional
+programming is relevant in operations and why you should care using simple,
+yet practical and motivating examples. This post will walk through writing
+automation for secrets management: we will verify a signature of an encrypted
+document, decrypt the document, verify a signature for the decrypted document.</p>
+
+<p>For those interested here is an article on <a href="http://world.std.com/~dtd/sign_encrypt/sign_encrypt7.html">the simple sign &amp; encrypt
+problem</a>.</p>
+
+<p>These are sequenced steps that get automated in CI/CD pipelines, or
+app/service initialization frequently.</p>
+
+<p>Let’s say we have some Javascript (don’t ask, just go with it) that you
+inherited which has the following skeleton and structure:</p>
+
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code>
+<span class="c1">// Fabricated so we can focus on the essence of the problem.</span>
+<span class="c1">// Note: I don't know ES6 yet so I stuck with the kind of Javascript</span>
+<span class="c1">// I am familiar with when I used to write it c2004. I also didn't</span>
+<span class="c1">// want language features to distract from the design discussion.</span>
+<span class="c1">// Let me know if it does anyway.</span>
+
+<span class="c1">// A provider implementation is passed in so that we can</span>
+<span class="c1">// control the expected interface via the Crypto0 constant.</span>
+<span class="kr">const</span> <span class="nx">Crypto0</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">provider</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">that</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+
+  <span class="nx">that</span><span class="p">.</span><span class="nx">verifyDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">signature</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">provider</span><span class="p">.</span><span class="nx">verifyDoc</span><span class="p">(</span><span class="nx">signature</span><span class="p">,</span> <span class="nx">doc</span><span class="p">);</span>
+  <span class="p">};</span>
+
+  <span class="nx">that</span><span class="p">.</span><span class="nx">decryptDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">provider</span><span class="p">.</span><span class="nx">decryptDoc</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+  <span class="p">};</span>
+
+  <span class="nx">that</span><span class="p">.</span><span class="nx">encryptDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">provider</span><span class="p">.</span><span class="nx">encryptDoc</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+  <span class="p">};</span>
+
+  <span class="k">return</span> <span class="nx">that</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">// don't recommend for use in performance critical code :)</span>
+<span class="kd">function</span> <span class="nx">reverse</span><span class="p">(</span><span class="nx">s</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="nx">s</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">''</span><span class="p">).</span><span class="nx">reverse</span><span class="p">().</span><span class="nx">join</span><span class="p">(</span><span class="s1">''</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/*
+  @param secrets object literal of object literals looking like:
+  { encrypted: "....", encSig: "....", decSig: "...." }
+
+  For each encrypted document content passed in:
+  (a) verify the encrypted doc with the external signature
+  (b) decrypt the encrypted content
+  (c) verify the decrypted doc contents with the unencrypted signature
+
+  If any of the above steps (per document) fail, signify an error occurred
+  to the client somehow. Otherwise return an object literal with keys for
+  each &lt;file&gt; and associated values for the secrets.
+*/</span>
+<span class="kd">function</span> <span class="nx">decryptSecrets</span><span class="p">(</span><span class="nx">secrets</span><span class="p">,</span> <span class="nx">provider</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">crypto</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Crypto0</span><span class="p">(</span><span class="nx">provider</span><span class="p">);</span>
+  <span class="k">return</span> <span class="nx">secrets</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">x</span><span class="p">,</span> <span class="nx">idx</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">crypto</span><span class="p">.</span><span class="nx">verifyDoc</span><span class="p">(</span><span class="nx">x</span><span class="p">.</span><span class="nx">encSig</span><span class="p">,</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">))</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">decrypted</span> <span class="o">=</span> <span class="nx">crypto</span><span class="p">.</span><span class="nx">decryptDoc</span><span class="p">(</span><span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span><span class="nx">crypto</span><span class="p">.</span><span class="nx">verifyDoc</span><span class="p">(</span><span class="nx">x</span><span class="p">.</span><span class="nx">decSig</span><span class="p">,</span> <span class="nx">decrypted</span><span class="p">))</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">{</span> <span class="na">encrypted</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">,</span> <span class="na">encSig</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encSig</span><span class="p">,</span> <span class="na">decSig</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">decSig</span><span class="p">,</span> <span class="na">decrypted</span><span class="p">:</span> <span class="nx">decrypted</span> <span class="p">};</span>
+      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">"decrypted signature cannot be verified for "</span> <span class="o">+</span> <span class="nx">idx</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">"encrypted signature cannot be verified for "</span> <span class="o">+</span> <span class="nx">idx</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+
+<p>Here is a mocked up scenario to run and see the output:</p>
+
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kr">const</span> <span class="nx">MockSuccessProvider0</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">that</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+  <span class="nx">that</span><span class="p">.</span><span class="nx">verifyDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">sig</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="kc">true</span><span class="p">;</span> <span class="p">};</span>
+  <span class="nx">that</span><span class="p">.</span><span class="nx">encryptDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">doc</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">reverse</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span> <span class="p">};</span>
+  <span class="nx">that</span><span class="p">.</span><span class="nx">decryptDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">doc</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">reverse</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span> <span class="p">};</span>
+  <span class="k">return</span> <span class="nx">that</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kr">const</span> <span class="nx">MockFailureProvider0</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">that</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+  <span class="nx">that</span><span class="p">.</span><span class="nx">verifyDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">sig</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="kc">false</span><span class="p">;</span> <span class="p">};</span>
+  <span class="nx">that</span><span class="p">.</span><span class="nx">encryptDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">doc</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">reverse</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span> <span class="p">};</span>
+  <span class="nx">that</span><span class="p">.</span><span class="nx">decryptDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">doc</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">reverse</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span> <span class="p">};</span>
+  <span class="k">return</span> <span class="nx">that</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kd">function</span> <span class="nx">examples</span><span class="p">(</span><span class="nx">f</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">f</span><span class="p">([</span>
+    <span class="p">{</span>
+      <span class="na">encrypted</span><span class="p">:</span> <span class="s2">"oy oy oy"</span><span class="p">,</span>
+      <span class="na">encSig</span><span class="p">:</span> <span class="s2">"bla"</span><span class="p">,</span>
+      <span class="na">decSig</span><span class="p">:</span> <span class="s2">"bla"</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+      <span class="na">encrypted</span><span class="p">:</span> <span class="s2">"rab oof"</span><span class="p">,</span>
+      <span class="na">encSig</span><span class="p">:</span> <span class="s2">"baz"</span><span class="p">,</span>
+      <span class="na">decSig</span><span class="p">:</span> <span class="s2">"baz"</span>
+    <span class="p">}</span>
+  <span class="p">],</span> <span class="k">new</span> <span class="nx">MockSuccessProvider0</span><span class="p">()));</span>
+
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">f</span><span class="p">([</span>
+    <span class="p">{</span>
+      <span class="na">encrypted</span><span class="p">:</span> <span class="s2">"oy oy oy"</span><span class="p">,</span>
+      <span class="na">encSig</span><span class="p">:</span> <span class="s2">"bla"</span><span class="p">,</span>
+      <span class="na">decSig</span><span class="p">:</span> <span class="s2">"bla"</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+      <span class="na">encrypted</span><span class="p">:</span> <span class="s2">"rab oof"</span><span class="p">,</span>
+      <span class="na">encSig</span><span class="p">:</span> <span class="s2">"baz"</span><span class="p">,</span>
+      <span class="na">decSig</span><span class="p">:</span> <span class="s2">"baz"</span>
+    <span class="p">}</span>
+  <span class="p">],</span> <span class="k">new</span> <span class="nx">MockFailureProvider0</span><span class="p">()));</span>
+
+<span class="p">}</span>
+
+
+</code></pre>
+</div>
+
+<p>The output of this mocked up scenario is:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>&gt; examples(decryptSecrets);
+
+[ { encrypted: 'oy oy oy',
+    encSig: 'bla',
+    decSig: 'bla',
+    decrypted: 'yo yo yo' },
+  { encrypted: 'rab oof',
+    encSig: 'baz',
+    decSig: 'baz',
+    decrypted: 'foo bar' } ]
+[ [Error: encrypted signature cannot be verified for 0],
+  [Error: encrypted signature cannot be verified for 1] ]
+</code></pre>
+</div>
+
+<p>One thing to notice is that the above has no side effects (except the logging
+in the usage at the end to demonstrate it working). This allows us to focus on
+the core parts of the problem, pushing out system interaction and side effects
+to outer layers, and making the code usable in more contexts.</p>
+
+<p>We inject the crypto provider as an argument which means
+we can swap out providers depending on the running environment. For example
+when running in Node we can use whatever Node package we wish to use to provide
+encryption and signature verification functionality, whereas in the browser
+we can wrap browser cryptographic APIs in the <code class="highlighter-rouge">Crypto0</code> interface. When
+testing (like above with our mock providers) we can define the providers
+we need to satisfy our test cases. No dangerous stubs or test doubles that
+modify other object behaviors at runtime just to test logic contained elsewhere.
+It uses just simple mock providers, which are passed in at the call-site in
+our consumer code.</p>
+
+<p>Similarly we have the benefit that the <code class="highlighter-rouge">decryptSecrets</code> function accepts
+values for the encrypted and signature contents instead of passing in paths
+or URLs or DOM ids since depending on the our running context we may wish to
+implement this differently.</p>
+
+<p>In the browser we might want to choose between retrieving encrypted and
+signature content from DOM elements referenced by IDs or retrieving the
+content by URLs. In a Node running environment we may choose either file
+paths or network URLs.</p>
+
+<p>It’s nice and all that we inherited a referentially transparent
+core and I appreciate that we can inject our crypto provider and determine
+how to read in the encrypted data and signatures from the consuming code,
+but is it awesome yet? The function used to map over the given secrets is a
+little clunky. What if we needed it to provide slightly differing logic?</p>
+
+<p>For that matter, what if we’d like to make verifying secrets on both sides
+optional? As in whether to verify the encrypted data before decrypting or
+whether to verify the decrypted data at the end. We’d have to maintain three
+new versions of the function with little or no ability to meaningfully reuse
+existing definitions or structure.</p>
+
+<p>Let’s see how we might be able to improve our code to offer a more composable
+interface. Specifically we want to allow verifying signatures on either
+encrypted or decrypted sides optional by just composing functions together.</p>
+
+<h2 id="unify-and-contextualize-your-sequencing">Unify and contextualize your sequencing</h2>
+
+<p>Let’s start off with the dumbest solution to our new requirements of
+implementing a different function for each possible case.</p>
+
+<p>Below we rename the original <code class="highlighter-rouge">decryptSecrets</code> function to describe
+the context in which it operates (namely that it will verify both the encrypted
+and decrypted signatures or <em>fail</em> otherwise):</p>
+
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">function</span> <span class="nx">decryptSecretsWithFullVerification</span><span class="p">(</span><span class="nx">secrets</span><span class="p">,</span> <span class="nx">provider</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">crypto</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Crypto0</span><span class="p">(</span><span class="nx">provider</span><span class="p">);</span>
+  <span class="k">return</span> <span class="nx">secrets</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">x</span><span class="p">,</span> <span class="nx">idx</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">crypto</span><span class="p">.</span><span class="nx">verifyDoc</span><span class="p">(</span><span class="nx">x</span><span class="p">.</span><span class="nx">encSig</span><span class="p">,</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">))</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">decrypted</span> <span class="o">=</span> <span class="nx">crypto</span><span class="p">.</span><span class="nx">decryptDoc</span><span class="p">(</span><span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span><span class="nx">crypto</span><span class="p">.</span><span class="nx">verifyDoc</span><span class="p">(</span><span class="nx">x</span><span class="p">.</span><span class="nx">decSig</span><span class="p">,</span> <span class="nx">decrypted</span><span class="p">))</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">{</span> <span class="na">encrypted</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">,</span> <span class="na">encSig</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encSig</span><span class="p">,</span> <span class="na">decSig</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">decSig</span><span class="p">,</span> <span class="na">decrypted</span><span class="p">:</span> <span class="nx">decrypted</span> <span class="p">};</span>
+      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">"decrypted signature cannot be verified for "</span> <span class="o">+</span> <span class="nx">idx</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">"encrypted signature cannot be verified for "</span> <span class="o">+</span> <span class="nx">idx</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+
+<p>The function works the same way, but we’ve renamed it.</p>
+
+<p>Below we define the other functions named according to how they behave:</p>
+
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">function</span> <span class="nx">decryptSecretsWithEncVerification</span><span class="p">(</span><span class="nx">secrets</span><span class="p">,</span> <span class="nx">provider</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">crypto</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Crypto0</span><span class="p">(</span><span class="nx">provider</span><span class="p">);</span>
+  <span class="k">return</span> <span class="nx">secrets</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">x</span><span class="p">,</span> <span class="nx">idx</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">crypto</span><span class="p">.</span><span class="nx">verifyDoc</span><span class="p">(</span><span class="nx">x</span><span class="p">.</span><span class="nx">encSig</span><span class="p">,</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">))</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">decrypted</span> <span class="o">=</span> <span class="nx">crypto</span><span class="p">.</span><span class="nx">decryptDoc</span><span class="p">(</span><span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">);</span>
+      <span class="k">return</span> <span class="p">{</span> <span class="na">encrypted</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">,</span> <span class="na">encSig</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encSig</span><span class="p">,</span> <span class="na">decSig</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">decSig</span><span class="p">,</span> <span class="na">decrypted</span><span class="p">:</span> <span class="nx">decrypted</span> <span class="p">};</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">"encrypted signature cannot be verified for "</span> <span class="o">+</span> <span class="nx">idx</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">decryptSecretsWithDecVerification</span><span class="p">(</span><span class="nx">secrets</span><span class="p">,</span> <span class="nx">provider</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">crypto</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Crypto0</span><span class="p">(</span><span class="nx">provider</span><span class="p">);</span>
+  <span class="k">return</span> <span class="nx">secrets</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">x</span><span class="p">,</span> <span class="nx">idx</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">decrypted</span> <span class="o">=</span> <span class="nx">crypto</span><span class="p">.</span><span class="nx">decryptDoc</span><span class="p">(</span><span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">crypto</span><span class="p">.</span><span class="nx">verifyDoc</span><span class="p">(</span><span class="nx">x</span><span class="p">.</span><span class="nx">decSig</span><span class="p">,</span> <span class="nx">decrypted</span><span class="p">))</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="p">{</span> <span class="na">encrypted</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">,</span> <span class="na">encSig</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encSig</span><span class="p">,</span> <span class="na">decSig</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">decSig</span><span class="p">,</span> <span class="na">decrypted</span><span class="p">:</span> <span class="nx">decrypted</span> <span class="p">};</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">"decrypted signature cannot be verified for "</span> <span class="o">+</span> <span class="nx">idx</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">decryptSecretsWithNoVerification</span><span class="p">(</span><span class="nx">secrets</span><span class="p">,</span> <span class="nx">provider</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">crypto</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Crypto0</span><span class="p">(</span><span class="nx">provider</span><span class="p">);</span>
+  <span class="k">return</span> <span class="nx">secrets</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">x</span><span class="p">,</span> <span class="nx">idx</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">decrypted</span> <span class="o">=</span> <span class="nx">crypto</span><span class="p">.</span><span class="nx">decryptDoc</span><span class="p">(</span><span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">);</span>
+    <span class="k">return</span> <span class="p">{</span> <span class="na">encrypted</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encrypted</span><span class="p">,</span> <span class="na">encSig</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">encSig</span><span class="p">,</span> <span class="na">decSig</span><span class="p">:</span> <span class="nx">x</span><span class="p">.</span><span class="nx">decSig</span><span class="p">,</span> <span class="na">decrypted</span><span class="p">:</span> <span class="nx">decrypted</span> <span class="p">};</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+
+<p>Take a close look at the definitions of these functions. There is much
+commonality yet not in a way we can reuse parts by combining them simply, yet.</p>
+
+<p>To check the behavior is as we would expect for the two examples we
+already provided above, let’s still use the mock providers via the <code class="highlighter-rouge">examples</code>
+helper function above:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>
+&gt; examples(decryptSecretsWithEncVerification);
+[ { encrypted: 'oy oy oy',
+    encSig: 'bla',
+    decSig: 'bla',
+    decrypted: 'yo yo yo' },
+  { encrypted: 'rab oof',
+    encSig: 'baz',
+    decSig: 'baz',
+    decrypted: 'foo bar' } ]
+[ [Error: encrypted signature cannot be verified for 0],
+  [Error: encrypted signature cannot be verified for 1] ]
+
+&gt; examples(decryptSecretsWithDecVerification);
+[ { encrypted: 'oy oy oy',
+    encSig: 'bla',
+    decSig: 'bla',
+    decrypted: 'yo yo yo' },
+  { encrypted: 'rab oof',
+    encSig: 'baz',
+    decSig: 'baz',
+    decrypted: 'foo bar' } ]
+[ [Error: decrypted signature cannot be verified for 0],
+  [Error: decrypted signature cannot be verified for 1] ]
+
+&gt; examples(decryptSecretsWithNoVerification);
+[ { encrypted: 'oy oy oy',
+    encSig: 'bla',
+    decSig: 'bla',
+    decrypted: 'yo yo yo' },
+  { encrypted: 'rab oof',
+    encSig: 'baz',
+    decSig: 'baz',
+    decrypted: 'foo bar' } ]
+[ { encrypted: 'oy oy oy',
+    encSig: 'bla',
+    decSig: 'bla',
+    decrypted: 'yo yo yo' },
+  { encrypted: 'rab oof',
+    encSig: 'baz',
+    decSig: 'baz',
+    decrypted: 'foo bar' } ]
+
+</code></pre>
+</div>
+
+<p>In addition to the original implementation which we renamed to
+<code class="highlighter-rouge">decryptSecretsWithFullVerification</code> we had to create three more functions
+to handle all the cases for the dumbest solution possible.</p>
+
+<p>SHIP IT! Right?</p>
+
+<p>Maybe we should hold up before we do. While we have something that is
+[almost] shippable from a core functionality perspective - we still need to
+glue all these things in, which I left as an exercise for the reader because
+the thought of doing so made me feel queasy - but this is not the kind of
+code we want to maintain going forward, is it? How about if we need to
+extend it further? We either provide a unifying interface for consumers
+of our API or we push the complexity into the consuming codebase.</p>
+
+<p>Ideally we want to be able to pass some context into the original
+<code class="highlighter-rouge">decryptSecrets</code> function that hides the specific implementation our consumer
+requires. This context dictates how we sequence the steps in our <code class="highlighter-rouge">Crypto0</code>
+API in our <em>programs</em>. This will eliminate the newly created need to glue all
+these varieties of the <code class="highlighter-rouge">decryptSecretsXXXX</code> functionality in our dumb
+solution above in the consuming code.</p>
+
+<p>So how will we pass in this context if we just offer a unified interface
+for the core operations of <code class="highlighter-rouge">verifyDoc</code>, <code class="highlighter-rouge">decryptDoc</code>, and <code class="highlighter-rouge">encryptDoc</code>?
+(We might also want to add the ability to produce signatures of documents
+for completeness.)</p>
+
+<p>We could wrap document encryption/decryption/signing/verifying computations
+or logic (with optionally the needed signatures) passed into
+the core API. If we wrapped the core values this way could we construct
+new program logic by simple combinations (e.g. appending, simple sequencing
+into, etc.) from smaller decrypt/encrypt/verify/sign units? Let’s see.</p>
+
+<p>If we have wrapped values, we will probably need to offer a way to
+<em>unwrap</em> the underlying result (so far) and apply a given function. Not only
+would this be needed for sequencing purposes (before we compute step B
+we must have the result of step A first) but building APIs with symmetry
+is usually a good idea (unless you have a reason to break this rule).</p>
+
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="cm">/*
+ * We are given a wrapped program that provides the context of our sequenced
+ * computation. We can extend the functionality offered by the wrapped
+ * program by performing a new step that requires the result of evaluating
+ * the wrapped program.
+ */</span>
+<span class="kd">function</span> <span class="nx">extendProgram</span><span class="p">(</span><span class="nx">wrappedProgram</span><span class="p">,</span> <span class="nx">dependentStep</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dependentStep</span><span class="p">(</span><span class="nx">unwrap</span><span class="p">(</span><span class="nx">wrappedProgram</span><span class="p">));</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+
+<p>Another trivial way we could extend building a program in this context
+is by just requiring a sequence happened before the next step and
+ignoring the evaluated value from the prior sequence. It might look
+something like this:</p>
+
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">function</span> <span class="nx">appendToProgram</span><span class="p">(</span><span class="nx">wrappedProgram</span><span class="p">,</span> <span class="nx">nextStep</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">ignored</span> <span class="o">=</span> <span class="nx">unwrap</span><span class="p">(</span><span class="nx">wrappedProgram</span><span class="p">);</span>
+  <span class="nx">nextStep</span><span class="p">();</span>
+<span class="p">}</span>
+
+</code></pre>
+</div>
+
+<p>Of course, we also need to wrap simple values in the necessary context.
+This might look like the following:</p>
+
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="cm">/* wrap is a function that decorates the value, v. */</span>
+<span class="kd">function</span> <span class="nx">wrapInContext</span><span class="p">(</span><span class="nx">v</span><span class="p">,</span> <span class="nx">wrap</span><span class="p">)</span> <span class="p">{</span> <span class="nx">wrap</span><span class="p">(</span><span class="nx">v</span><span class="p">);</span> <span class="p">}</span>
+</code></pre>
+</div>
+
+<p>How do we signify a failure condition during the execution of our program?
+Here’s one attempt (it’s not gorgeous):</p>
+
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">function</span> <span class="nx">failInContext</span><span class="p">(</span><span class="nx">message</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nb">Error</span><span class="p">(</span><span class="nx">message</span><span class="p">);</span> <span class="p">}</span>
+</code></pre>
+</div>
+
+<h2 id="building-the-wrapped-crypto-api">Building the wrapped Crypto API</h2>
+
+<p>How could we use the above ideas to build smaller units of programs and
+combine them in different ways as long as the output of the prior steps
+aligns with the input for the next step?</p>
+
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code>
+<span class="kr">const</span> <span class="nx">Crypto1</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">provider</span><span class="p">,</span> <span class="nx">wrap</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">that</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+
+  <span class="c1">// verifyDoc takes a secret object which has the doc, and its signature</span>
+  <span class="c1">// whether encrypted or decrypted, returning a boolean to indicate if</span>
+  <span class="c1">// the document could be verified against its signature.</span>
+  <span class="nx">that</span><span class="p">.</span><span class="nx">verifyDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">secret</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">wrapInContext</span><span class="p">(</span><span class="nx">provider</span><span class="p">.</span><span class="nx">verifyDoc</span><span class="p">(</span><span class="nx">secret</span><span class="p">.</span><span class="nx">sig</span><span class="p">,</span> <span class="nx">secret</span><span class="p">.</span><span class="nx">doc</span><span class="p">),</span> <span class="nx">wrap</span><span class="p">);</span>
+  <span class="p">};</span>
+
+  <span class="c1">// decryptDoc takes a document (assumed encrypted) and decrypts it,</span>
+  <span class="c1">// returning a decrypted document.</span>
+  <span class="nx">that</span><span class="p">.</span><span class="nx">decryptDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">wrapInContext</span><span class="p">(</span><span class="nx">provider</span><span class="p">.</span><span class="nx">decryptDoc</span><span class="p">(</span><span class="nx">doc</span><span class="p">),</span> <span class="nx">wrap</span><span class="p">);</span>
+  <span class="p">};</span>
+
+  <span class="c1">// encryptDoc takes a document (assumed decrypted) and encrypts it,</span>
+  <span class="c1">// returning an encrypted document.</span>
+  <span class="nx">that</span><span class="p">.</span><span class="nx">encryptDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">wrapInContext</span><span class="p">(</span><span class="nx">provider</span><span class="p">.</span><span class="nx">encryptDoc</span><span class="p">(</span><span class="nx">doc</span><span class="p">),</span> <span class="nx">wrap</span><span class="p">);</span>
+  <span class="p">};</span>
+
+  <span class="c1">// adding new signing API: signDoc takes a document (either encrypted or</span>
+  <span class="c1">// decrypted) and returns its [detached] signature.</span>
+  <span class="nx">that</span><span class="p">.</span><span class="nx">signDoc</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">wrapInContext</span><span class="p">(</span><span class="nx">provider</span><span class="p">.</span><span class="nx">signDoc</span><span class="p">(</span><span class="nx">doc</span><span class="p">),</span> <span class="nx">wrap</span><span class="p">);</span>
+  <span class="p">};</span>
+  <span class="k">return</span> <span class="nx">that</span><span class="p">;</span>
+<span class="p">};</span>
+
+</code></pre>
+</div>
+
+<p>It is starting get a little hairy and modern Javascript developers might be
+wondering, “isn’t this a little like Promises?” :) :) :)</p>
+
+<p>Yes, in fact, it was entirely made for this purpose. Imagine that. :)</p>
+
+<p>So how might it look if we wrapped our provider API with Promises?</p>
+
+<p>One attempt might look like the following:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>crypto.verifyDoc((sig, doc) =&gt; {
+  crypto.decryptDoc(doc, decDec =&gt; {
+    console.log(decDoc);
+  }
+});
+</code></pre>
+</div>
+
+<p>It so happens that this is the same as:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>crypto.verifyDoc(sig, doc)
+  .then(doc =&gt; crypto.decryptDoc(doc))
+  .then(decDec =&gt; console.log(decDoc));
+</code></pre>
+</div>
+
+<p>which is the same as:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>crypto.verifyDoc(sig, doc)
+  .then(crypto.decryptDoc)
+  .then(console.log);
+</code></pre>
+</div>
+
+<p>which also happens to be the the same as:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>(async (sig, doc) =&gt; {
+  const verified = await verifyDoc(sig, doc);
+  if (verified) {
+    const decDoc = await decryptDoc(doc);
+    await console.log(decDoc);
+  }
+})(sig, doc);
+</code></pre>
+</div>
+
+<p>Now the longer the chains get, the harder it is going to be to keep the
+passing of the output of one step into the next step as input straight
+in your head. Also if you want to construct a sequential process to
+perform later, then with <code class="highlighter-rouge">Promise</code>es you need to wrap the process itself
+in another <code class="highlighter-rouge">Promise</code>. The above form offers the encasing layer already
+with the expectation that to perform the action we call some kind of
+evaluate/perform interpretator function (left as an exercise for the reader).</p>
+
+<p>Now next time we will look at building the secrets management for CI/CD
+in a language that can guide our brains through the pipeline transformations
+at each stage using a relatively cheap mechanism (static types, welp) as
+well as naturally offer such a construction for defining <em>composable
+sequential processes</em>. We will do this in Purescript! :)</p>
+
+
+  <p>
+  Blog post sponsored by <a href="http://referentiallabs.com">Referential Labs</a>,
+  and written by <a href="https://twitter.com/SusanPotter">Susan Potter</a>.
+  </p>
+
+</article>
+
+
+      </div>
+    </div>
+
+    
+<div>
+
+<!--
+<link href="//cdn-images.mailchimp.com/embedcode/slim-10_7.css" rel="stylesheet" type="text/css">
+-->
+<style type="text/css">
+#mc_embed_signup {
+  background:#fff;
+  clear:left;
+  font-size:14px;
+  width: 480px;
+  text-align: center;
+  margin: auto;
+}
+</style>
+<div id="mc_embed_signup">
+  <form action="//gmail.us13.list-manage.com/subscribe/post?u=9f637599198f6295f84f3845d&amp;id=e7adfc802a&SOURCEURL=http://typed.funops.co/tutorials/2017/04/22/composable-sequenced-processes.html&SOURCE=http://typed.funops.co" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank" novalidate>
+    <div id="mc_embed_signup_scroll">
+      <label for="mce-EMAIL">Subscribe for a monthly tip from Referential Labs on building more reliable distributed systems</label>
+      <div>
+      <input type="email" value="" name="EMAIL" class="email" id="mce-EMAIL" placeholder="email address" required>
+      <input type="submit" value="Subscribe" name="subscribe" id="mc-embedded-subscribe" class="button">
+      </div>
+      <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_9f637599198f6295f84f3845d_e7adfc802a" tabindex="-1" value=""></div>
+    </div>
+  </form>
+</div>
+
+</div>
+
+<footer class="footer">
+
+  <p>
+    Copyright &copy; 2015-2016
+    <a href="https://twitter.com/SusanPotter">@SusanPotter</a> and
+    <a href="https://twitter.com/referentiallabs">@referentiallabs</a>.
+  </p>
+</footer>
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-80008235-2', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  </body>
+
+</html>

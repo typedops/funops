@@ -95,7 +95,7 @@ along on our journey.</p>
 <p>Let’s start out with a simple example. We need to model VPCs and Subnets in
 AWS:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Vpc</span><span class="o">(</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">case</span> <span class="k">class</span> <span class="nc">Vpc</span><span class="o">(</span>
      <span class="o">|</span>   <span class="n">cidrBlock</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
      <span class="o">|</span>   <span class="n">region</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
      <span class="o">|</span>   <span class="n">dhcpOptionsId</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
@@ -115,7 +115,7 @@ AWS:</p>
 
 <p>Now let’s use these definition to construct values:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">val</span> <span class="n">region</span> <span class="k">=</span> <span class="s">"us-west-14"</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">val</span> <span class="n">region</span> <span class="k">=</span> <span class="s">"us-west-14"</span>
 <span class="n">region</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="n">us</span><span class="o">-</span><span class="n">west</span><span class="o">-</span><span class="mi">14</span>
 
 <span class="n">scala</span><span class="o">&gt;</span> <span class="k">val</span> <span class="n">vpc</span> <span class="k">=</span> <span class="nc">Vpc</span><span class="o">(</span><span class="s">"10.0.0.0/16"</span><span class="o">,</span> <span class="n">region</span><span class="o">,</span> <span class="kc">null</span><span class="o">,</span> <span class="s">"dedicated"</span><span class="o">,</span> <span class="kc">false</span><span class="o">)</span>
@@ -147,7 +147,7 @@ using weak types in our data type definitions.</p>
 
 <p>Now let’s toughen up these types.</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// We build a sum type (also called coproduct in some literature)
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// We build a sum type (also called coproduct in some literature)
 </span>     <span class="o">|</span> <span class="c1">// This is a kind of algebraic data type that represents a logical OR
 </span>     <span class="o">|</span> <span class="k">sealed</span> <span class="k">trait</span> <span class="nc">Region</span>
 <span class="n">defined</span> <span class="k">trait</span> <span class="nc">Region</span>
@@ -215,7 +215,7 @@ using weak types in our data type definitions.</p>
 <p>Now we have some provisioning logic that picks the appropriate AWS
 credentials when using specific regions vs others:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// we are just mocking out this function for now and not *doing* anything yet
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// we are just mocking out this function for now and not *doing* anything yet
 </span>     <span class="o">|</span> <span class="k">def</span> <span class="n">provisionVpc</span><span class="o">(</span><span class="n">vpc</span><span class="k">:</span> <span class="kt">Vpc</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
      <span class="o">|</span>   <span class="k">if</span> <span class="o">(</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span> <span class="o">==</span> <span class="s">"us-west-1"</span><span class="o">)</span> <span class="s">"vpc-123456"</span> <span class="k">else</span> <span class="s">"vpc-654321"</span>
 <span class="o">&lt;</span><span class="n">console</span><span class="k">&gt;:</span><span class="mi">23</span><span class="k">:</span> <span class="kt">warning:</span> <span class="kt">Region</span> <span class="kt">and</span> <span class="kt">String</span> <span class="kt">are</span> <span class="kt">unrelated:</span> <span class="kt">they</span> <span class="kt">will</span> <span class="kt">most</span> <span class="kt">likely</span> <span class="kt">never</span> <span class="kt">compare</span> <span class="kt">equal</span>
@@ -234,7 +234,7 @@ are comparing the value of a different type.</p>
 <code class="highlighter-rouge">cats</code> in these examples) we can use a type safe equality operator
 like so:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">import</span> <span class="nn">cats._</span><span class="o">,</span> <span class="n">cats</span><span class="o">.</span><span class="n">std</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="k">_</span><span class="o">,</span> <span class="n">cats</span><span class="o">.</span><span class="n">syntax</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="k">_</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">import</span> <span class="nn">cats._</span><span class="o">,</span> <span class="n">cats</span><span class="o">.</span><span class="n">std</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="k">_</span><span class="o">,</span> <span class="n">cats</span><span class="o">.</span><span class="n">syntax</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="k">_</span>
 <span class="k">import</span> <span class="nn">cats._</span>
 <span class="k">import</span> <span class="nn">cats.std.all._</span>
 <span class="k">import</span> <span class="nn">cats.syntax.all._</span>
@@ -242,7 +242,7 @@ like so:</p>
 <span class="n">scala</span><span class="o">&gt;</span> <span class="k">implicit</span> <span class="k">val</span> <span class="n">regionEquality</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Eq</span><span class="o">[</span><span class="kt">Region</span><span class="o">]</span> <span class="o">{</span>
      <span class="o">|</span>   <span class="k">def</span> <span class="n">eqv</span><span class="o">(</span><span class="n">r1</span><span class="k">:</span> <span class="kt">Region</span><span class="o">,</span> <span class="n">r2</span><span class="k">:</span> <span class="kt">Region</span><span class="o">)</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="n">r1</span> <span class="o">==</span> <span class="n">r2</span>
      <span class="o">|</span> <span class="o">}</span>
-<span class="n">regionEquality</span><span class="k">:</span> <span class="kt">cats.Eq</span><span class="o">[</span><span class="kt">Region</span><span class="o">]</span> <span class="k">=</span> <span class="nc">$anon$1</span><span class="k">@</span><span class="mi">3388</span><span class="n">a846</span>
+<span class="n">regionEquality</span><span class="k">:</span> <span class="kt">cats.Eq</span><span class="o">[</span><span class="kt">Region</span><span class="o">]</span> <span class="k">=</span> <span class="nc">$anon$1</span><span class="k">@</span><span class="mi">1276</span><span class="n">b151</span>
 </code></pre>
 </div>
 
@@ -250,7 +250,7 @@ like so:</p>
 <code class="highlighter-rouge">===</code> (the typesafe equality operator) our code will not compile when we
 check different types for equality:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// Now reimplement provisionVpc (but this does not compile, which is what we
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// Now reimplement provisionVpc (but this does not compile, which is what we
 </span>     <span class="o">|</span> <span class="c1">// want!!!)
 </span>     <span class="o">|</span> <span class="k">def</span> <span class="n">provisionVpc</span><span class="o">(</span><span class="n">vpc</span><span class="k">:</span> <span class="kt">Vpc</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
      <span class="o">|</span>   <span class="k">if</span> <span class="o">(</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span> <span class="o">===</span> <span class="s">"us-west-1"</span><span class="o">)</span> <span class="s">"vpc-123456"</span> <span class="k">else</span> <span class="s">"vpc-654321"</span>
@@ -264,7 +264,7 @@ check different types for equality:</p>
 
 <p>The following will compile and is exactly what we want in our case:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// Now reimplement provisionVpc where types on either side of === match such
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// Now reimplement provisionVpc where types on either side of === match such
 </span>     <span class="o">|</span> <span class="c1">// that this now compiles but also the logic behaves as we expect and can
 </span>     <span class="o">|</span> <span class="c1">// reason about.
 </span>     <span class="o">|</span> <span class="k">def</span> <span class="n">provisionVpc</span><span class="o">(</span><span class="n">vpc</span><span class="k">:</span> <span class="kt">Vpc</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
@@ -277,7 +277,7 @@ check different types for equality:</p>
 product types further such as accepting a <code class="highlighter-rouge">Cidr</code> type for the CIDR block
 given:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">import</span> <span class="nn">spire.math._</span><span class="o">,</span> <span class="n">spire</span><span class="o">.</span><span class="n">implicits</span><span class="o">.</span><span class="k">_</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">import</span> <span class="nn">spire.math._</span><span class="o">,</span> <span class="n">spire</span><span class="o">.</span><span class="n">implicits</span><span class="o">.</span><span class="k">_</span>
 <span class="k">import</span> <span class="nn">spire.math._</span>
 <span class="k">import</span> <span class="nn">spire.implicits._</span>
 
@@ -350,7 +350,7 @@ we can wrap the basic string identifier that AWS returns back as a specific
 type <code class="highlighter-rouge">VpcId</code>. This will not allocate a boxed value but will uniquely identify
 the type of <code class="highlighter-rouge">String</code> at compile-time.</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">VpcId</span> <span class="o">(</span><span class="k">private</span> <span class="k">val</span> <span class="n">id</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">AnyVal</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">VpcId</span> <span class="o">(</span><span class="k">private</span> <span class="k">val</span> <span class="n">id</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">AnyVal</span>
 <span class="n">defined</span> <span class="k">class</span> <span class="nc">VpcId</span>
 
 <span class="n">scala</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">DhcpOptionsId</span> <span class="k">private</span> <span class="o">(</span><span class="k">val</span> <span class="n">id</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">AnyVal</span>
@@ -377,7 +377,7 @@ the type of <code class="highlighter-rouge">String</code> at compile-time.</p>
 <p>We also need to make sure the functions provisioning or querying and returning
 these identifiers return the appropriate wrapper values.</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// Note we are returning VpcId not String any more
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="c1">// Note we are returning VpcId not String any more
 </span>     <span class="o">|</span> <span class="k">def</span> <span class="n">provisionVpc</span><span class="o">(</span><span class="n">vpc</span><span class="k">:</span> <span class="kt">Vpc</span><span class="o">)</span><span class="k">:</span> <span class="kt">VpcId</span> <span class="o">=</span> <span class="o">???</span>
 <span class="n">provisionVpc</span><span class="k">:</span> <span class="o">(</span><span class="kt">vpc:</span> <span class="kt">Vpc</span><span class="o">)</span><span class="kt">VpcId</span>
 
@@ -399,7 +399,7 @@ to this. Promise. :)</p>
 
 <p>We could also replace the type alias for <code class="highlighter-rouge">Prefix</code> with a value class:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">Prefix</span> <span class="o">(</span><span class="k">val</span> <span class="n">b</span><span class="k">:</span> <span class="kt">Byte</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">AnyVal</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">Prefix</span> <span class="o">(</span><span class="k">val</span> <span class="n">b</span><span class="k">:</span> <span class="kt">Byte</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">AnyVal</span>
 <span class="n">defined</span> <span class="k">class</span> <span class="nc">Prefix</span>
 
 <span class="n">scala</span><span class="o">&gt;</span> <span class="k">object</span> <span class="nc">Prefix</span> <span class="o">{</span>

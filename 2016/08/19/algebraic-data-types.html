@@ -156,7 +156,7 @@ definitions which are open.</p>
 
 <p>Let’s fire up a <code class="highlighter-rouge">scala</code> REPL process and paste in the following:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">coin0</span> <span class="o">{</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">coin0</span> <span class="o">{</span>
   <span class="k">sealed</span> <span class="k">trait</span> <span class="nc">USCoin</span>                 <span class="o">{</span> <span class="k">def</span> <span class="n">value</span><span class="k">:</span> <span class="kt">Int</span>  <span class="o">}</span>
   <span class="k">case</span> <span class="k">object</span> <span class="nc">Penny</span> <span class="k">extends</span> <span class="nc">USCoin</span>    <span class="o">{</span> <span class="k">def</span> <span class="n">value</span> <span class="k">=</span> <span class="mi">1</span>   <span class="o">}</span>
   <span class="k">case</span> <span class="k">object</span> <span class="nc">Nickel</span> <span class="k">extends</span> <span class="nc">USCoin</span>   <span class="o">{</span> <span class="k">def</span> <span class="n">value</span> <span class="k">=</span> <span class="mi">5</span>   <span class="o">}</span>
@@ -188,7 +188,7 @@ supporting logic or calculations.</p>
 
 <p>Note: we could have also defined it this way:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">coin1</span> <span class="o">{</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">coin1</span> <span class="o">{</span>
   <span class="k">sealed</span> <span class="k">abstract</span> <span class="k">class</span> <span class="nc">USCoin</span><span class="o">(</span><span class="n">value</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span>
   <span class="k">case</span> <span class="k">object</span> <span class="nc">Penny</span>    <span class="k">extends</span> <span class="nc">USCoin</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
   <span class="k">case</span> <span class="k">object</span> <span class="nc">Nickel</span>   <span class="k">extends</span> <span class="nc">USCoin</span><span class="o">(</span><span class="mi">5</span><span class="o">)</span>
@@ -204,7 +204,7 @@ supporting logic or calculations.</p>
 this code to explore this idea further. So back in your
 running <code class="highlighter-rouge">scala</code> REPL:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">VendingMachine</span> <span class="o">{</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">VendingMachine</span> <span class="o">{</span>
   <span class="c1">// import your preferred implementation below
 </span>  <span class="k">import</span> <span class="nn">coin0._</span>
 
@@ -279,7 +279,7 @@ the tuple. For example, perhaps we want to represent an image
 element in a HTML page. We might initially represent an image
 element as the following tuple (via a type alias in Scala below):</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">type</span> <span class="kt">Image</span> <span class="o">=</span> <span class="o">(</span><span class="nc">String</span><span class="o">,</span> <span class="nc">Int</span><span class="o">,</span> <span class="nc">Int</span><span class="o">)</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">type</span> <span class="kt">Image</span> <span class="o">=</span> <span class="o">(</span><span class="nc">String</span><span class="o">,</span> <span class="nc">Int</span><span class="o">,</span> <span class="nc">Int</span><span class="o">)</span>
 <span class="c1">// defined type alias Image
 </span></code></pre>
 </div>
@@ -292,7 +292,7 @@ to know what it is referring to. <em>Enter product types.</em></p>
 <p>In Scala below we can represent an image element in HTML as the
 following case class.</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">case</span> <span class="k">class</span> <span class="nc">ImageElement</span><span class="o">(</span><span class="n">sourceUrl</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">width</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">height</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">case</span> <span class="k">class</span> <span class="nc">ImageElement</span><span class="o">(</span><span class="n">sourceUrl</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">width</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">height</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span>
 <span class="c1">// defined class ImageElement
 </span></code></pre>
 </div>
@@ -318,7 +318,7 @@ yourself.</p>
 <p>So a first stab at modeling this with an algebraic data type in
 Haskell might look like:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="kr">import</span> <span class="nn">Data.DateTime</span>
+<div class="language-haskell highlighter-rouge"><pre class="highlight"><code><span class="kr">import</span> <span class="nn">Data.DateTime</span>
 
 <span class="c1">-- Assumes User is defined elsewhere and imported</span>
 
@@ -352,7 +352,7 @@ exhaustive list of possible <em>*constructors*</em> such as:
 <p>Now we could have modeled <code class="highlighter-rouge">Notification</code> data type a little
 differently. Let us consider the following modeling of the domain:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="kr">import</span> <span class="nn">Data.DateTime</span>
+<div class="language-haskell highlighter-rouge"><pre class="highlight"><code><span class="kr">import</span> <span class="nn">Data.DateTime</span>
 
 <span class="c1">-- Assumes User is defined elsewhere and imported</span>
 
@@ -420,7 +420,7 @@ e.g. lists, trees, etc.</li>
 <p>We will explore this form of algebraic data type using the example
 of a binary tree with integer values:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">sealed</span> <span class="k">trait</span> <span class="nc">IntTree</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">sealed</span> <span class="k">trait</span> <span class="nc">IntTree</span>
 <span class="c1">// defined trait IntTree
 </span>
 <span class="k">case</span> <span class="k">class</span> <span class="nc">IntLeaf</span><span class="o">(</span><span class="n">value</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">IntTree</span>
@@ -433,7 +433,7 @@ of a binary tree with integer values:</p>
 
 <p>We can now build up trees with integers at the leaves like so:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">inttrees</span> <span class="o">{</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">inttrees</span> <span class="o">{</span>
   <span class="k">val</span> <span class="n">t0</span><span class="k">:</span> <span class="kt">IntTree</span> <span class="o">=</span> <span class="nc">IntLeaf</span><span class="o">(</span><span class="mi">9</span><span class="o">)</span>
   <span class="k">val</span> <span class="n">t1</span><span class="k">:</span> <span class="kt">IntTree</span> <span class="o">=</span> <span class="nc">IntBranch</span><span class="o">(</span><span class="nc">IntLeaf</span><span class="o">(</span><span class="mi">6</span><span class="o">),</span> <span class="nc">IntBranch</span><span class="o">(</span><span class="nc">IntLeaf</span><span class="o">(</span><span class="mi">4</span><span class="o">),</span> <span class="nc">IntLeaf</span><span class="o">(</span><span class="mi">8</span><span class="o">)))</span>
 <span class="o">}</span>
@@ -444,7 +444,7 @@ of a binary tree with integer values:</p>
 <p>In Haskell we can express the above example with a little less
 syntactic clutter like so:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="kr">data</span> <span class="kt">IntTree</span> <span class="o">=</span> <span class="kt">IntLeaf</span> <span class="kt">Int</span> <span class="o">|</span> <span class="kt">IntBranch</span> <span class="kt">IntTree</span> <span class="kt">IntTree</span>
+<div class="language-haskell highlighter-rouge"><pre class="highlight"><code><span class="kr">data</span> <span class="kt">IntTree</span> <span class="o">=</span> <span class="kt">IntLeaf</span> <span class="kt">Int</span> <span class="o">|</span> <span class="kt">IntBranch</span> <span class="kt">IntTree</span>
 
 <span class="n">t0</span> <span class="o">=</span> <span class="kt">IntLeaf</span> <span class="mi">9</span>
 
@@ -503,7 +503,7 @@ functional programming languages like Haskell, Scala, and
 OCaml we will explore how to define a type that parameterizes
 on a record constituent of the definition:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">sealed</span> <span class="k">abstract</span> <span class="k">class</span> <span class="nc">GenericTree</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">sealed</span> <span class="k">abstract</span> <span class="k">class</span> <span class="nc">GenericTree</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
 <span class="c1">// defined class GenericTree
 </span>
 <span class="k">case</span> <span class="k">class</span> <span class="nc">Leaf</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">value</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">GenericTree</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>

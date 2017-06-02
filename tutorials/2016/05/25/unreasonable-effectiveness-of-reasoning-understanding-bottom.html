@@ -150,7 +150,7 @@ costs of more resource usage.</p>
 <p>The version of OCaml can likely vary from this version to yield the
 same results, but I have only tested with 4.01.0.</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="o">[</span>git:master?+] spotter@redhorn ~/src/work/root
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="o">[</span>git:master?+] spotter@redhorn ~/src/work/root
 <span class="gp">$ </span>ocaml
         OCaml version 4.01.0
 
@@ -181,7 +181,7 @@ to the caller in the type signature.</li>
 <p>This code will likely work in many prior versions of GHC but I have only
 tested on 7.10.3.</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="gp">$ </span>ghci
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="gp">$ </span>ghci
 GHCi, version 7.10.3: http://www.haskell.org/ghc/  :? <span class="k">for </span><span class="nb">help
 </span><span class="gp">Prelude&gt; </span>import System.Posix
 Prelude System.Posix&gt; :t getEnv
@@ -194,7 +194,7 @@ Leaving GHCi.
 <p>The type signature of getting the value of an environment variable in
 <code class="highlighter-rouge">System.Posix</code> module is:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="kt">String</span> <span class="o">-&gt;</span> <span class="kt">IO</span> <span class="p">(</span><span class="kt">Maybe</span> <span class="kt">String</span><span class="p">)</span>
+<div class="language-hs highlighter-rouge"><pre class="highlight"><code><span class="kt">String</span> <span class="o">-&gt;</span> <span class="kt">IO</span> <span class="p">(</span><span class="kt">Maybe</span> <span class="kt">String</span><span class="p">)</span>
 </code></pre>
 </div>
 
@@ -229,7 +229,7 @@ possible in the context of the function.</li>
 
 <p>Follow along in your <code class="highlighter-rouge">ocaml</code> REPL:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="p">#</span> <span class="n">getenv</span> <span class="s2">"HOME"</span>
+<div class="language-ocaml highlighter-rouge"><pre class="highlight"><code><span class="p">#</span> <span class="n">getenv</span> <span class="s2">"HOME"</span>
   <span class="p">;;</span>
 <span class="p">-</span> <span class="p">:</span> <span class="kt">string</span> <span class="p">=</span> <span class="s2">"/home/spotter"</span>
 <span class="p">#</span> <span class="n">getenv</span> <span class="s2">"HOME2"</span>
@@ -246,7 +246,7 @@ of the result which forces <em>bottom</em> be returned.</p>
 
 <h3 id="haskell">Haskell</h3>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>Prelude System.Posix&gt; getEnv <span class="s2">"HOME"</span>
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>Prelude System.Posix&gt; getEnv <span class="s2">"HOME"</span>
 Just <span class="s2">"/home/spotter"</span>
 it :: Maybe String
 Prelude System.Posix&gt; getEnv <span class="s2">"HOME2"</span>
@@ -264,7 +264,7 @@ perform/execute it.</p>
 
 <p>Follow along in your own <code class="highlighter-rouge">ghci</code> REPL.</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="kt">Prelude</span><span class="o">&gt;</span> <span class="kr">import</span> <span class="nn">System.Posix</span>
+<div class="language-hs highlighter-rouge"><pre class="highlight"><code><span class="kt">Prelude</span><span class="o">&gt;</span> <span class="kr">import</span> <span class="nn">System.Posix</span>
 <span class="kt">Prelude</span> <span class="kt">System</span><span class="o">.</span><span class="kt">Posix</span><span class="o">&gt;</span> <span class="kr">let</span> <span class="n">a0</span> <span class="o">=</span> <span class="n">getE</span>
 <span class="n">getEffectiveGroupID</span>   <span class="n">getEffectiveUserName</span>  <span class="n">getEnvDefault</span>         <span class="n">getEnvironmentPrim</span>
 <span class="n">getEffectiveUserID</span>    <span class="n">getEnv</span>                <span class="n">getEnvironment</span>
@@ -294,7 +294,7 @@ perform/execute it.</p>
 
 <p>Let’s look at each of these API choices in Scala (a neutral language):</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="cm">/*
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="cm">/*
  * Using Scalaz Effect v7.2.1:
  *    "org.scalaz" %% "scalaz-effect" % "7.2.1"
  */</span>
@@ -421,7 +421,7 @@ simpler API on top of better defined (from an equational reasoning
 perspective) functions to fit more consumer needs. Let’s look below to
 see what this could look like:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">SysEnv1</span> <span class="o">{</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">object</span> <span class="nc">SysEnv1</span> <span class="o">{</span>
   <span class="k">def</span> <span class="n">getEnv0</span><span class="o">(</span><span class="n">key</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
     <span class="k">try</span> <span class="o">{</span>
       <span class="n">getEnv2</span><span class="o">(</span><span class="n">key</span><span class="o">)</span>
