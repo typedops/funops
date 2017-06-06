@@ -447,7 +447,7 @@ One attempt might look like the following:
 
 ```
 crypto.verifyDoc((sig, doc) => {
-  crypto.decryptDoc(doc, decDec => {
+  crypto.decryptDoc(doc, decDoc => {
     console.log(decDoc);
   }
 });
@@ -458,7 +458,7 @@ It so happens that this is the same as:
 ```
 crypto.verifyDoc(sig, doc)
   .then(doc => crypto.decryptDoc(doc))
-  .then(decDec => console.log(decDoc));
+  .then(decDoc => console.log(decDoc));
 ```
 
 which is the same as:
